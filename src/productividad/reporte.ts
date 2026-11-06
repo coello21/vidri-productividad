@@ -37,16 +37,16 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
   const f = new Date(dia + 'T12:00:00'), fecha = DIA[f.getDay()] + ' ' + f.getDate() + ' ' + MES[f.getMonth()] + ' ' + f.getFullYear();
   const hc = corte ? hora(corte) : '—';
   const bueno = sobre.map((s) => `${s.z}: ${c1(s.tot)} (meta ${s.mt.m}).`);
-  const mejorar = bajo.slice().sort((a, b) => b.h - a.h).slice(0, 3).map((s) => `${s.z}: ${c1(s.tot)} (meta ${s.mt.m}, ${c1(s.h)} h).`);
+  const mejorar = bajo.slice().sort((a, b) => b.h - a.h).slice(0, 3).map((s) => `${s.z}: ${c1(s.tot)} (meta ${s.mt.m}).`);
   // escala de las barras sin las zonas con muy pocas horas (un valor extremo aplastaría las demás); lo que se pasa se recorta al 100%
   const mx = Math.max(...S.filter((s) => s.h >= 0.5).map((s) => Math.max(s.tot!, s.mt.m)), ...S.map((s) => s.mt.m)) * 1.05;
   let filas = '';
   for (const s of S) {
     const k = est(s.tot!, s.mt.m, s.mt.t), ka = est(s.avg ?? 0, s.mt.m, s.mt.t);
-    filas += `<tr><td class="l"><b>${esc(s.z)}</b></td><td>${s.n}</td><td>${s.o}</td><td>${c0(s.k)}</td><td>${c1(s.h)}</td><td style="color:${COL[ka]}">${c1(s.avg)}</td>` +
+    filas += `<tr><td class="l"><b>${esc(s.z)}</b></td><td>${s.o}</td><td>${c0(s.k)}</td><td style="color:${COL[ka]}">${c1(s.avg)}</td>` +
       `<td class="bar"><div class="b"><span style="width:${Math.min(100, s.tot! / mx * 100).toFixed(1)}%;background:${COL[k]}"></span><i style="left:${(s.mt.m / mx * 100).toFixed(1)}%"></i></div></td><td><b style="color:${COL[k]}">${c1(s.tot)}</b></td><td class="m">${s.mt.m}</td></tr>`;
   }
-  filas += `<tr class="vz"><td class="l"><b>Varias zonas</b> <span class="mut">(aparte)</span></td><td>${vp}</td><td>${vo}</td><td>${c0(vk)}</td><td>${c1(vh)}</td><td></td><td class="mut l" style="font-size:7pt">no entran en el total</td><td><b>${c1(vr)}</b></td><td class="m">—</td></tr>`;
+  filas += `<tr class="vz"><td class="l"><b>Varias zonas</b> <span class="mut">(aparte)</span></td><td>${vo}</td><td>${c0(vk)}</td><td></td><td class="mut l" style="font-size:7pt">no entran en el total</td><td><b>${c1(vr)}</b></td><td class="m">—</td></tr>`;
   const titulo = 'Productividad por zona · ' + fecha.toLowerCase();
   const lst = (a: string[], vacio: string) => '<ul>' + (a.length ? a : [vacio]).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>';
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
@@ -79,7 +79,7 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
 <div class="kp"><div class="l">Varias zonas</div><div class="v">${c1(vr)}</div><div class="s">${vo} órdenes, aparte</div></div>
 </div>
 <h2>Por zona</h2>
-<table><tr><th class="l">Zona</th><th>Personas</th><th>Órdenes</th><th>Líneas</th><th>Horas</th><th>Prom. personas</th><th class="l">Total vs meta</th><th>Total</th><th>Meta</th></tr>${filas}</table>
+<table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Prom. personas</th><th class="l">Total vs meta</th><th>Total</th><th>Meta</th></tr>${filas}</table>
 <div class="notas"><div><div class="t"><i style="background:${COL.g}"></i>Lo bueno</div>${lst(bueno, 'Ninguna zona sobre la meta con 3 h o más.')}</div><div><div class="t"><i style="background:${COL.y}"></i>Por mejorar</div>${lst(mejorar, 'Todas las zonas en meta.')}</div></div>
 <div class="nota">Total = líneas ÷ horas de la zona · marca negra = meta · sin órdenes de 1 SKU, de menos de 10 s por SKU ni de más de 4 h · todos los tipos de pedido</div>
 </div>

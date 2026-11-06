@@ -200,8 +200,8 @@ function renderZonas(o: Opciones, emp: boolean) {
     kpi('Zonas en meta', enMeta + ' de ' + V.S.length, 'promedio de las personas') + kpi('Líneas preparadas', f(V.tk, 0), f(V.th) + ' h de preparación') +
     kpi('Órdenes', f(V.ordenes, 0), V.multi ? `${V.multi} de varias zonas aparte` : 'todas de una sola zona');
   const top = Math.max(...V.S.map((x) => x.avg || 0), 1);
-  $('th2').innerHTML = ['Zona|l', 'Personas|', 'Órdenes|', 'Líneas|', 'Horas|', 'Promedio de las personas|', 'Total (líneas ÷ horas)|', 'Meta|'].map((x) => `<th class="${x.split('|')[1]}">${x.split('|')[0]}</th>`).join('');
-  $('tb2').innerHTML = V.S.map((x) => `<tr><td class="l"><b>${esc(x.z)}</b></td><td>${x.n}</td><td>${x.o}</td><td>${f(x.k, 0)}</td><td>${f(x.h, 2)}</td><td><div class="pr"><i class="pv-${x.sa}" style="width:${(x.avg || 0) / top * 120}px"></i>${pill(x.avg, x.sa)}</div></td><td>${pill(x.tot, x.sg)}</td><td class="dim">${f(x.mt.m, 0)}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">No hay órdenes para esta selección.</td></tr>';
+  $('th2').innerHTML = ['Zona|l', 'Órdenes|', 'Líneas|', 'Promedio de las personas|', 'Total (líneas ÷ horas)|', 'Meta|'].map((x) => `<th class="${x.split('|')[1]}">${x.split('|')[0]}</th>`).join('');
+  $('tb2').innerHTML = V.S.map((x) => `<tr><td class="l"><b>${esc(x.z)}</b></td><td>${x.o}</td><td>${f(x.k, 0)}</td><td><div class="pr"><i class="pv-${x.sa}" style="width:${(x.avg || 0) / top * 120}px"></i>${pill(x.avg, x.sa)}</div></td><td>${pill(x.tot, x.sg)}</td><td class="dim">${f(x.mt.m, 0)}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">No hay órdenes para esta selección.</td></tr>';
   const L = V.personas;
   type PZ = typeof L[number];
   const val = (p: PZ, K: string): number | string | null => K.startsWith('z:') ? (p.z[K.slice(2)] && p.z[K.slice(2)].h ? p.z[K.slice(2)].k / p.z[K.slice(2)].h! : null) : ['name', 'cod', 'type'].includes(K) ? (p as unknown as Record<string, string>)[K] : p.h ? p.k! / p.h : null;
