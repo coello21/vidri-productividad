@@ -54,13 +54,13 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
     const mx = Math.ceil(Math.max(GLOBAL.m, ...S.filter((x) => x.h >= 0.5).map((x) => Math.max(x.avg ?? 0, x.mt.m))) * 1.12 / 20) * 20;
     const Y = (v: number) => t + ih - Math.min(v, mx) / mx * ih, slot = iw / N, bw = slot * 0.62;
     let g = '';
-    for (let v = 0; v <= mx; v += 20) g += `<line x1="${l}" x2="${W - r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#E3E6EA" stroke-width=".6"/><text x="${l - 5}" y="${(Y(v) + 3).toFixed(1)}" font-size="8" fill="#6B7280" text-anchor="end">${v}</text>`;
+    for (let v = 0; v <= mx; v += 20) g += `<line x1="${l}" x2="${W - r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#E3E6EA" stroke-width=".6"/><text x="${l - 5}" y="${(Y(v) + 3).toFixed(1)}" font-size="8" fill="#6D6E70" text-anchor="end">${v}</text>`;
     S.forEach((x, i) => {
       const cx = l + slot * i + slot / 2, v = x.avg ?? 0, k = est(v, x.mt.m, x.mt.t);
       g += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(Math.min(v, mx) / mx * ih).toFixed(1)}" fill="${COL[k]}" rx="1.5"/>`;
-      g += `<line x1="${(cx - bw / 2 - 2).toFixed(1)}" x2="${(cx + bw / 2 + 2).toFixed(1)}" y1="${Y(x.mt.m).toFixed(1)}" y2="${Y(x.mt.m).toFixed(1)}" stroke="#1F2328" stroke-width="2.4"/>`;
-      g += `<text x="${cx.toFixed(1)}" y="${(Y(v) - 4).toFixed(1)}" font-size="8" font-weight="600" fill="#3D434B" text-anchor="middle">${c1(v)}</text>`;
-      g += `<text x="${cx.toFixed(1)}" y="${H - 8}" font-size="8" fill="#6B7280" text-anchor="middle">${esc(x.z.replace('Zona ', 'Z'))}</text>`;
+      g += `<line x1="${(cx - bw / 2 - 2).toFixed(1)}" x2="${(cx + bw / 2 + 2).toFixed(1)}" y1="${Y(x.mt.m).toFixed(1)}" y2="${Y(x.mt.m).toFixed(1)}" stroke="#1A1A1A" stroke-width="2.4"/>`;
+      g += `<text x="${cx.toFixed(1)}" y="${(Y(v) - 4).toFixed(1)}" font-size="8" font-weight="600" fill="#3A3B3D" text-anchor="middle">${c1(v)}</text>`;
+      g += `<text x="${cx.toFixed(1)}" y="${H - 8}" font-size="8" fill="#6D6E70" text-anchor="middle">${esc(x.z.replace('Zona ', 'Z'))}</text>`;
     });
     g += `<line x1="${l}" x2="${W - r}" y1="${Y(GLOBAL.m).toFixed(1)}" y2="${Y(GLOBAL.m).toFixed(1)}" stroke="#2E7D4F" stroke-width="1" stroke-dasharray="4 3"/>`;
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:'IBM Plex Sans',Arial,sans-serif">${g}</svg>`;
@@ -69,23 +69,23 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
   const lst = (a: string[], vacio: string) => '<ul>' + (a.length ? a : [vacio]).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>';
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
 @page{size:Letter;margin:0}
-*{box-sizing:border-box}body{margin:0;background:#fff;font-family:'IBM Plex Sans','DejaVu Sans',Arial,sans-serif;color:#1F2328;font-size:8.4pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-variant-numeric:tabular-nums}
-.bar-top{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:8px 14px;background:#1F2328}.bar-top button{font:600 12px 'IBM Plex Sans',Arial,sans-serif;padding:7px 12px;border:1px solid #fff;border-radius:4px;background:#fff;color:#1F2328;cursor:pointer}.bar-top button+button{background:transparent;color:#fff}
+*{box-sizing:border-box}body{margin:0;background:#fff;font-family:'IBM Plex Sans','DejaVu Sans',Arial,sans-serif;color:#1A1A1A;font-size:8.4pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-variant-numeric:tabular-nums}
+.bar-top{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:8px 14px;background:#1A1A1A}.bar-top button{font:600 12px 'IBM Plex Sans',Arial,sans-serif;padding:7px 12px;border:1px solid #fff;border-radius:4px;background:#fff;color:#1A1A1A;cursor:pointer}.bar-top button+button{background:transparent;color:#fff}
 @media screen{body{background:#E9ECEF}.pg{box-shadow:0 4px 18px rgba(0,0,0,.12);margin:16px auto}}
 @media print{.bar-top{display:none}}
 .pg{max-width:216mm;margin:0 auto;padding:12mm 13mm;min-height:279mm;position:relative;background:#fff}
 .hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #D7262B;padding-bottom:8px}
-.hd img{height:34px}.hr{text-align:right;font-size:7pt;color:#6B7280;line-height:1.5}.hr b{display:block;color:#1F2328;font-size:10.5pt}
+.hd img{height:34px}.hr{text-align:right;font-size:7pt;color:#6D6E70;line-height:1.5}.hr b{display:block;color:#1A1A1A;font-size:10.5pt}
 .k{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 14px}.kp{border:1px solid #E3E6EA;border-radius:6px;padding:8px 10px}
-.kp .l{font-size:7pt;color:#6B7280}.kp .v{font-weight:600;font-size:18pt;margin:2px 0 1px}.kp .s{font-size:7pt;color:#6B7280}
+.kp .l{font-size:7pt;color:#6D6E70}.kp .v{font-weight:600;font-size:18pt;margin:2px 0 1px}.kp .s{font-size:7pt;color:#6D6E70}
 h2{font-size:10pt;font-weight:600;margin:0 0 6px;padding-bottom:3px;border-bottom:1px solid #E3E6EA}
 table{border-collapse:collapse;width:100%}
-th{font-size:6.8pt;font-weight:600;color:#6B7280;text-align:right;padding:3px 5px;border-bottom:1px solid #C9CED5}th.l,td.l{text-align:left}
-td{padding:3.4px 5px;border-bottom:1px solid #EEF0F2;text-align:right}td.m{color:#6B7280}
-td.bar{width:30%}.b{position:relative;height:9px;background:#F1F3F5;border-radius:2px}.b span{display:block;height:100%;border-radius:2px}.b i{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:#1F2328}
-tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
-.notas{margin-top:14px;border:1px solid #E3E6EA;border-radius:6px;padding:8px 12px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.notas .t{font-weight:600;font-size:7.6pt;margin-bottom:2px}.notas .t i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}.notas ul{margin:0;padding-left:13px}.notas li{font-size:7.4pt;line-height:1.5;color:#3D434B}
-.lgz{display:flex;gap:14px;font-size:7pt;color:#6B7280;margin:0 0 2px}.lgz i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+th{font-size:6.8pt;font-weight:600;color:#6D6E70;text-align:right;padding:3px 5px;border-bottom:1px solid #C9CED5}th.l,td.l{text-align:left}
+td{padding:3.4px 5px;border-bottom:1px solid #EEF0F2;text-align:right}td.m{color:#6D6E70}
+td.bar{width:30%}.b{position:relative;height:9px;background:#F1F3F5;border-radius:2px}.b span{display:block;height:100%;border-radius:2px}.b i{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:#1A1A1A}
+tr.vz td{border-top:1px solid #C9CED5;color:#3A3B3D}.mut{color:#6D6E70}
+.notas{margin-top:14px;border:1px solid #E3E6EA;border-radius:6px;padding:8px 12px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.notas .t{font-weight:600;font-size:7.6pt;margin-bottom:2px}.notas .t i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}.notas ul{margin:0;padding-left:13px}.notas li{font-size:7.4pt;line-height:1.5;color:#3A3B3D}
+.lgz{display:flex;gap:14px;font-size:7pt;color:#6D6E70;margin:0 0 2px}.lgz i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .nota{margin-top:10px;font-size:6.4pt;color:#9AA1AB;line-height:1.5}
 </style></head><body>
 <div class="bar-top"><button id="pdf" type="button">Guardar PDF</button><button id="cerrar" type="button">Cerrar</button></div>
@@ -97,7 +97,7 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
 <div class="kp"><div class="l">Líneas preparadas</div><div class="v">${c0(Z.tk)}</div><div class="s">${c1(Z.th)} h</div></div>
 </div>
 <h2>Líneas por hora por zona <span class="mut" style="font-weight:400;font-size:7.5pt">promedio de las personas</span></h2>
-<div class="lgz"><span><i style="background:${COL.g}"></i>En meta</span><span><i style="background:${COL.y}"></i>Cerca</span><span><i style="background:${COL.r}"></i>Abajo</span><span><i style="background:#1F2328;height:3px;vertical-align:2px"></i>Meta de la zona</span><span><i style="border-top:1.5px dashed ${COL.g};height:0;vertical-align:3px"></i>Meta global (${GLOBAL.m})</span></div>
+<div class="lgz"><span><i style="background:${COL.g}"></i>En meta</span><span><i style="background:${COL.y}"></i>Cerca</span><span><i style="background:${COL.r}"></i>Abajo</span><span><i style="background:#1A1A1A;height:3px;vertical-align:2px"></i>Meta de la zona</span><span><i style="border-top:1.5px dashed ${COL.g};height:0;vertical-align:3px"></i>Meta global (${GLOBAL.m})</span></div>
 ${G}
 <h2 style="margin-top:12px">Resumen por zona <span class="mut" style="font-weight:400;font-size:7.5pt">total = líneas ÷ horas de toda la zona</span></h2>
 <table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Total (líneas ÷ h)</th><th>Meta</th></tr>${filas}</table>

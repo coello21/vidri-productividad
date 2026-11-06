@@ -4,7 +4,7 @@ import { nice } from '../app/ui/graficos';
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const f1 = (v: number) => v.toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 export const COLOR_SEM: Record<string, string> = { g: '#3E8E4F', y: '#D49A1E', r: '#C7453A', '': '#8d8788' };
-export const PALETA = ['#2b6cb0', '#6b46c1', '#0891b2', '#be185d', '#4b5563', '#7c2d12', '#4338ca', '#0f766e'];
+export const PALETA = ['#1E3A6E', '#E0262B', '#1A1A1A', '#6D6E70', '#5B7BB0', '#9E1B1F', '#A3A5A8', '#3A5A94'];
 
 export interface Linea { nombre: string; datos: (number | null)[]; color: string; grosor?: number; punteada?: string; puntos?: boolean }
 
