@@ -12,7 +12,7 @@ const MES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEPT', 'OC
 const c1 = (v: number | null | undefined) => (v == null || !isFinite(v) ? '–' : v.toFixed(1).replace('.', ','));
 const c0 = (v: number) => Math.round(v).toLocaleString('en-US');
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-const COL = { g: '#2E7D4F', y: '#C46A1E', r: '#C0392B' } as const;
+const COL = { g: '#1E3A6E', y: '#C46A1E', r: '#C0392B' } as const;
 const est = (v: number, m: number, t: number): keyof typeof COL => (v >= m ? 'g' : v >= m - t ? 'y' : 'r');
 const hora = (seg: number) => { const d = new Date(seg * 1000); let h = d.getHours(); const ap = h < 12 ? 'a. m.' : 'p. m.'; h = h % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ap; };
 
@@ -62,7 +62,7 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
       g += `<text x="${cx.toFixed(1)}" y="${(Y(v) - 4).toFixed(1)}" font-size="8" font-weight="600" fill="#3A3B3D" text-anchor="middle">${c1(v)}</text>`;
       g += `<text x="${cx.toFixed(1)}" y="${H - 8}" font-size="8" fill="#6D6E70" text-anchor="middle">${esc(x.z.replace('Zona ', 'Z'))}</text>`;
     });
-    g += `<line x1="${l}" x2="${W - r}" y1="${Y(GLOBAL.m).toFixed(1)}" y2="${Y(GLOBAL.m).toFixed(1)}" stroke="#2E7D4F" stroke-width="1" stroke-dasharray="4 3"/>`;
+    g += `<line x1="${l}" x2="${W - r}" y1="${Y(GLOBAL.m).toFixed(1)}" y2="${Y(GLOBAL.m).toFixed(1)}" stroke="#1E3A6E" stroke-width="1" stroke-dasharray="4 3"/>`;
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:'IBM Plex Sans',Arial,sans-serif">${g}</svg>`;
   })();
   const titulo = 'Productividad por zona · ' + fecha.toLowerCase();

@@ -3,7 +3,7 @@ import { nice } from '../app/ui/graficos';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const f1 = (v: number) => v.toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-export const COLOR_SEM: Record<string, string> = { g: '#3E8E4F', y: '#D49A1E', r: '#C7453A', '': '#8d8788' };
+export const COLOR_SEM: Record<string, string> = { g: '#1E3A6E', y: '#D49A1E', r: '#C7453A', '': '#8d8788' };
 export const PALETA = ['#1E3A6E', '#E0262B', '#1A1A1A', '#6D6E70', '#5B7BB0', '#9E1B1F', '#A3A5A8', '#3A5A94'];
 
 export interface Linea { nombre: string; datos: (number | null)[]; color: string; grosor?: number; punteada?: string; puntos?: boolean }
@@ -49,7 +49,7 @@ export function barrasZona(el: HTMLElement, grupos: GrupoBarras[], global: numbe
     g += '<text class="ax" x="' + (x0 + slot / 2).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle">' + esc(gp.etiqueta) + '</text>';
   });
   const yg = y(global).toFixed(1);
-  g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + yg + '" y2="' + yg + '" stroke="#3E8E4F" stroke-width="2" stroke-dasharray="7 4"/>';
+  g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + yg + '" y2="' + yg + '" stroke="#1E3A6E" stroke-width="2" stroke-dasharray="7 4"/>';
   el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" height="' + H + '" role="img">' + g + '</svg>' +
-    leyenda([{ nombre: 'Promedio de las personas', color: '#D49A1E' }, { nombre: 'Meta de la zona', color: '#26241F' }, { nombre: 'Meta global (' + global + ')', color: '#3E8E4F', punteada: '1' }, ...nombres]);
+    leyenda([{ nombre: 'Promedio de las personas', color: '#1E3A6E' }, { nombre: 'Meta de la zona', color: '#26241F' }, { nombre: 'Meta global (' + global + ')', color: '#1E3A6E', punteada: '1' }, ...nombres]);
 }

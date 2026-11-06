@@ -168,7 +168,7 @@ function renderPersonas(o: Opciones) {
   ($('clr') as HTMLButtonElement).hidden = !nS;
   lineas($('cv'), T.etiquetas, [
     { nombre: 'Total', datos: T.total, color: '#26241F', grosor: 3 },
-    ...(mK ? [{ nombre: mn_(mK) + ' (' + f(mK.m, 0) + ')', datos: T.etiquetas.map(() => mK.m), color: '#3E8E4F', punteada: '7 4', puntos: false }, { nombre: 'Alerta desde ' + f(mK.m - mK.t, 0), datos: T.etiquetas.map(() => mK.m - mK.t), color: '#D49A1E', punteada: '2 4', puntos: false }] : []),
+    ...(mK ? [{ nombre: mn_(mK) + ' (' + f(mK.m, 0) + ')', datos: T.etiquetas.map(() => mK.m), color: '#1E3A6E', punteada: '7 4', puntos: false }, { nombre: 'Alerta desde ' + f(mK.m - mK.t, 0), datos: T.etiquetas.map(() => mK.m - mK.t), color: '#D49A1E', punteada: '2 4', puntos: false }] : []),
     ...T.personas.map((x) => ({ nombre: x.nombre, datos: x.datos, color: SC.get(x.k)! })),
   ], 'SKUs por hora');
   $('nt').innerHTML = lista([
@@ -209,7 +209,7 @@ function renderZonas(o: Opciones, emp: boolean) {
   tabla([['cod', 'Código', 'l'], ['name', 'Preparador', 'l'], ['type', 'Tipo', 'l'], ...V.zs.map((z) => ['z:' + z, z + '<br><span class="mt">meta ' + f(metaZona(z).m, 0) + '</span>', ''] as Col), ['rate', (S.zAll ? 'Total' : 'Total existencia') + (V.multi ? '<br><span class="mt">sin varias zonas</span>' : ''), '']],
     L.map((p) => `<tr data-pk="${esc(p.pk)}" class="${S.sel.has(p.pk) ? 'sel' : ''}"><td class="l dim">${p.cod ?? '–'}</td><td class="l">${esc(p.name)}${p.baja ? ' <span class="tag">(baja)</span>' : ''}</td><td class="l dim">${esc(p.type)}</td>${V.zs.map((z) => { const c = p.z[z]; return c && c.h ? `<td title="${c.o} órdenes · ${f(c.k, 0)} líneas · ${f(c.h, 2)} h">${pill(c.k / c.h, estado(c.k / c.h, metaZona(z)), c.o < 3)}</td>` : '<td class="dim">–</td>'; }).join('')}<td><b>${f(p.h ? p.k! / p.h : null)}</b></td></tr>`).join(''), 'No hay órdenes para esta selección.');
   const sel = [...S.sel].filter((k) => L.some((p) => p.pk === k));
-  barrasZona($('cv2'), V.S.map((x) => ({ etiqueta: x.z, meta: x.mt.m, valores: [{ v: x.avg == null ? null : +x.avg.toFixed(1), color: { g: '#3E8E4F', y: '#D49A1E', r: '#C7453A', '': '#8d8788' }[x.sa], nombre: 'Promedio de las personas' }, ...sel.map((k, i) => { const p = L.find((q) => q.pk === k)!, c = p.z[x.z]; return { v: c && c.h ? +(c.k / c.h).toFixed(1) : null, color: PALETA[i % 8], nombre: p.name }; })] })), GLOBAL.m, sel.map((k, i) => ({ nombre: L.find((q) => q.pk === k)!.name, color: PALETA[i % 8] })));
+  barrasZona($('cv2'), V.S.map((x) => ({ etiqueta: x.z, meta: x.mt.m, valores: [{ v: x.avg == null ? null : +x.avg.toFixed(1), color: { g: '#1E3A6E', y: '#D49A1E', r: '#C7453A', '': '#8d8788' }[x.sa], nombre: 'Promedio de las personas' }, ...sel.map((k, i) => { const p = L.find((q) => q.pk === k)!, c = p.z[x.z]; return { v: c && c.h ? +(c.k / c.h).toFixed(1) : null, color: PALETA[i % 8], nombre: p.name }; })] })), GLOBAL.m, sel.map((k, i) => ({ nombre: L.find((q) => q.pk === k)!.name, color: PALETA[i % 8] })));
   ($('clr2') as HTMLButtonElement).hidden = !sel.length;
   $('nt').innerHTML = lista([
     '<b>Línea:</b> cada SKU de la orden (columna Total item). <b>Líneas por hora</b> = líneas preparadas ÷ horas de preparación.',
@@ -385,6 +385,10 @@ function montar(ordenes: Orden[], extra: Persona[], usuario: string) {
   document.getElementById('acceso')?.remove();
   document.body.classList.remove('esq');
   ponerSeccion((location.hash || '').slice(1) as Seccion);
+  // al abrir se muestra el último día con órdenes (no todo el historial)
+  fechas();
+  const ds = P.dias();
+  if (ds.length) { ($('d1') as HTMLSelectElement).value = ds[ds.length - 1]; ($('d2') as HTMLSelectElement).value = ds[ds.length - 1]; }
   render();
 }
 
