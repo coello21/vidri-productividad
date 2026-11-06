@@ -36,8 +36,10 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
   const rZ = Z.rZ ?? 0, meta = GLOBAL.m, gap = meta - rZ;
   const f = new Date(dia + 'T12:00:00'), fecha = DIA[f.getDay()] + ' ' + f.getDate() + ' ' + MES[f.getMonth()] + ' ' + f.getFullYear();
   const hc = corte ? hora(corte) : '—';
-  const bueno = sobre.map((s) => `${s.z}: ${c1(s.tot)} (meta ${s.mt.m}).`);
-  const mejorar = bajo.slice().sort((a, b) => b.h - a.h).slice(0, 3).map((s) => `${s.z}: ${c1(s.tot)} (meta ${s.mt.m}).`);
+  const lista = (a: string[]) => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1]);
+  const bajoH = bajo.slice().sort((a, b) => b.h - a.h).slice(0, 3);
+  const bueno = sobre.length ? [`${lista(sobre.map((s) => s.z))}: las que más superan su meta.`] : [];
+  const mejorar = bajoH.length ? [`${lista(bajoH.map((s) => s.z))}: bajo su meta con más horas de trabajo.`] : [];
   // escala de las barras sin las zonas con muy pocas horas (un valor extremo aplastaría las demás); lo que se pasa se recorta al 100%
   const mx = Math.max(...S.filter((s) => s.h >= 0.5).map((s) => Math.max(s.tot!, s.mt.m)), ...S.map((s) => s.mt.m)) * 1.05;
   let filas = '';
@@ -72,11 +74,10 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
 <div class="bar-top"><button id="pdf" type="button">Guardar PDF</button><button id="cerrar" type="button">Cerrar</button></div>
 <div class="pg">
 <div class="hd"><img src="${logo}" alt="Vidri"><div class="hr"><b>Productividad por zona · CD Nejapa</b>${fecha.charAt(0) + fecha.slice(1).toLowerCase()} · corte ${hc}</div></div>
-<div class="k">
+<div class="k" style="grid-template-columns:repeat(3,1fr)">
 <div class="kp"><div class="l">Líneas por hora</div><div class="v" style="color:${COL[est(rZ, meta, GLOBAL.t)]}">${c1(rZ)}</div><div class="s">meta ${meta}</div></div>
 <div class="kp"><div class="l">Zonas en meta</div><div class="v">${en.length} de ${S.length}</div><div class="s">${Z.nP} personas</div></div>
 <div class="kp"><div class="l">Líneas preparadas</div><div class="v">${c0(Z.tk)}</div><div class="s">${c1(Z.th)} h</div></div>
-<div class="kp"><div class="l">Varias zonas</div><div class="v">${c1(vr)}</div><div class="s">${vo} órdenes, aparte</div></div>
 </div>
 <h2>Por zona</h2>
 <table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Prom. personas</th><th class="l">Total vs meta</th><th>Total</th><th>Meta</th></tr>${filas}</table>
