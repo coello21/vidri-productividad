@@ -40,15 +40,30 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
   const bajoH = bajo.slice().sort((a, b) => b.h - a.h).slice(0, 3);
   const bueno = sobre.length ? [`${lista(sobre.map((s) => s.z))}: las que más superan su meta.`] : [];
   const mejorar = bajoH.length ? [`${lista(bajoH.map((s) => s.z))}: bajo su meta con más horas de trabajo.`] : [];
-  // escala de las barras sin las zonas con muy pocas horas (un valor extremo aplastaría las demás); lo que se pasa se recorta al 100%
-  const mx = Math.max(...S.filter((s) => s.h >= 0.5).map((s) => Math.max(s.tot!, s.mt.m)), ...S.map((s) => s.mt.m)) * 1.05;
+  // tabla: solo lo que no está en el gráfico (el gráfico trae el promedio de las personas contra la meta)
   let filas = '';
   for (const s of S) {
-    const k = est(s.tot!, s.mt.m, s.mt.t), ka = est(s.avg ?? 0, s.mt.m, s.mt.t);
-    filas += `<tr><td class="l"><b>${esc(s.z)}</b></td><td>${s.o}</td><td>${c0(s.k)}</td><td style="color:${COL[ka]}">${c1(s.avg)}</td>` +
-      `<td class="bar"><div class="b"><span style="width:${Math.min(100, s.tot! / mx * 100).toFixed(1)}%;background:${COL[k]}"></span><i style="left:${(s.mt.m / mx * 100).toFixed(1)}%"></i></div></td><td><b style="color:${COL[k]}">${c1(s.tot)}</b></td><td class="m">${s.mt.m}</td></tr>`;
+    const k = est(s.tot!, s.mt.m, s.mt.t);
+    filas += `<tr><td class="l"><b>${esc(s.z)}</b></td><td>${s.o}</td><td>${c0(s.k)}</td><td><b style="color:${COL[k]}">${c1(s.tot)}</b></td><td class="m">${s.mt.m}</td></tr>`;
   }
-  filas += `<tr class="vz"><td class="l"><b>Varias zonas</b> <span class="mut">(aparte)</span></td><td>${vo}</td><td>${c0(vk)}</td><td></td><td class="mut l" style="font-size:7pt">no entran en el total</td><td><b>${c1(vr)}</b></td><td class="m">—</td></tr>`;
+  filas += `<tr class="vz"><td class="l"><b>Varias zonas</b> <span class="mut">(aparte)</span></td><td>${vo}</td><td>${c0(vk)}</td><td><b>${c1(vr)}</b></td><td class="m">—</td></tr>`;
+  // gráfico «Líneas por hora por zona» del tablero: promedio de las personas, marca = meta de la zona, línea = meta global
+  const G = (() => {
+    const W = 700, H = 210, l = 34, r = 8, t = 14, b = 24, iw = W - l - r, ih = H - t - b, N = S.length || 1;
+    const mx = Math.ceil(Math.max(GLOBAL.m, ...S.filter((x) => x.h >= 0.5).map((x) => Math.max(x.avg ?? 0, x.mt.m))) * 1.12 / 20) * 20;
+    const Y = (v: number) => t + ih - Math.min(v, mx) / mx * ih, slot = iw / N, bw = slot * 0.62;
+    let g = '';
+    for (let v = 0; v <= mx; v += 20) g += `<line x1="${l}" x2="${W - r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#E3E6EA" stroke-width=".6"/><text x="${l - 5}" y="${(Y(v) + 3).toFixed(1)}" font-size="8" fill="#6B7280" text-anchor="end">${v}</text>`;
+    S.forEach((x, i) => {
+      const cx = l + slot * i + slot / 2, v = x.avg ?? 0, k = est(v, x.mt.m, x.mt.t);
+      g += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(Math.min(v, mx) / mx * ih).toFixed(1)}" fill="${COL[k]}" rx="1.5"/>`;
+      g += `<line x1="${(cx - bw / 2 - 2).toFixed(1)}" x2="${(cx + bw / 2 + 2).toFixed(1)}" y1="${Y(x.mt.m).toFixed(1)}" y2="${Y(x.mt.m).toFixed(1)}" stroke="#1F2328" stroke-width="2.4"/>`;
+      g += `<text x="${cx.toFixed(1)}" y="${(Y(v) - 4).toFixed(1)}" font-size="8" font-weight="600" fill="#3D434B" text-anchor="middle">${c1(v)}</text>`;
+      g += `<text x="${cx.toFixed(1)}" y="${H - 8}" font-size="8" fill="#6B7280" text-anchor="middle">${esc(x.z.replace('Zona ', 'Z'))}</text>`;
+    });
+    g += `<line x1="${l}" x2="${W - r}" y1="${Y(GLOBAL.m).toFixed(1)}" y2="${Y(GLOBAL.m).toFixed(1)}" stroke="#2E7D4F" stroke-width="1" stroke-dasharray="4 3"/>`;
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:'IBM Plex Sans',Arial,sans-serif">${g}</svg>`;
+  })();
   const titulo = 'Productividad por zona · ' + fecha.toLowerCase();
   const lst = (a: string[], vacio: string) => '<ul>' + (a.length ? a : [vacio]).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>';
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
@@ -69,6 +84,7 @@ td{padding:3.4px 5px;border-bottom:1px solid #EEF0F2;text-align:right}td.m{color
 td.bar{width:30%}.b{position:relative;height:9px;background:#F1F3F5;border-radius:2px}.b span{display:block;height:100%;border-radius:2px}.b i{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:#1F2328}
 tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
 .notas{margin-top:14px;border:1px solid #E3E6EA;border-radius:6px;padding:8px 12px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.notas .t{font-weight:600;font-size:7.6pt;margin-bottom:2px}.notas .t i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}.notas ul{margin:0;padding-left:13px}.notas li{font-size:7.4pt;line-height:1.5;color:#3D434B}
+.lgz{display:flex;gap:14px;font-size:7pt;color:#6B7280;margin:0 0 2px}.lgz i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .nota{margin-top:10px;font-size:6.4pt;color:#9AA1AB;line-height:1.5}
 </style></head><body>
 <div class="bar-top"><button id="pdf" type="button">Guardar PDF</button><button id="cerrar" type="button">Cerrar</button></div>
@@ -79,10 +95,13 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
 <div class="kp"><div class="l">Zonas en meta</div><div class="v">${en.length} de ${S.length}</div><div class="s">${Z.nP} personas</div></div>
 <div class="kp"><div class="l">Líneas preparadas</div><div class="v">${c0(Z.tk)}</div><div class="s">${c1(Z.th)} h</div></div>
 </div>
-<h2>Por zona</h2>
-<table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Prom. personas</th><th class="l">Total vs meta</th><th>Total</th><th>Meta</th></tr>${filas}</table>
+<h2>Líneas por hora por zona <span class="mut" style="font-weight:400;font-size:7.5pt">promedio de las personas</span></h2>
+<div class="lgz"><span><i style="background:${COL.g}"></i>En meta</span><span><i style="background:${COL.y}"></i>Cerca</span><span><i style="background:${COL.r}"></i>Abajo</span><span><i style="background:#1F2328;height:3px;vertical-align:2px"></i>Meta de la zona</span><span><i style="border-top:1.5px dashed ${COL.g};height:0;vertical-align:3px"></i>Meta global (${GLOBAL.m})</span></div>
+${G}
+<h2 style="margin-top:12px">Por zona</h2>
+<table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Total (líneas ÷ h)</th><th>Meta</th></tr>${filas}</table>
 <div class="notas"><div><div class="t"><i style="background:${COL.g}"></i>Lo bueno</div>${lst(bueno, 'Ninguna zona sobre la meta con 3 h o más.')}</div><div><div class="t"><i style="background:${COL.y}"></i>Por mejorar</div>${lst(mejorar, 'Todas las zonas en meta.')}</div></div>
-<div class="nota">Total = líneas ÷ horas de la zona · marca negra = meta · sin órdenes de 1 SKU, de menos de 10 s por SKU ni de más de 4 h · todos los tipos de pedido</div>
+<div class="nota">Total = líneas ÷ horas de toda la zona · sin órdenes de 1 SKU, de menos de 10 s por SKU ni de más de 4 h · todos los tipos de pedido</div>
 </div>
 <script>document.getElementById("pdf").onclick=function(){window.print()};document.getElementById("cerrar").onclick=function(){try{parent.__cerrarReporteProd()}catch(e){window.close()}};<\/script>
 </body></html>`;
