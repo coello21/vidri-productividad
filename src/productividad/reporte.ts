@@ -1,5 +1,6 @@
 /**
  * Reporte ejecutivo de Productividad por zona (una página, para guardar en PDF).
+ * REGLA (6 nov 2026): el reporte solo usa los gráficos y tablas que ya están en el tablero, cada uno con un texto corto de qué muestra; nada de gráficos nuevos ni texto explicativo largo.
  * Mismo formato que el "Resumen · Productividad por zona" del reporte ejecutivo del Radar:
  * todas las órdenes del día, las de varias zonas aparte, total por zona contra su meta.
  */
@@ -98,10 +99,10 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3D434B}.mut{color:#6B7280}
 <h2>Líneas por hora por zona <span class="mut" style="font-weight:400;font-size:7.5pt">promedio de las personas</span></h2>
 <div class="lgz"><span><i style="background:${COL.g}"></i>En meta</span><span><i style="background:${COL.y}"></i>Cerca</span><span><i style="background:${COL.r}"></i>Abajo</span><span><i style="background:#1F2328;height:3px;vertical-align:2px"></i>Meta de la zona</span><span><i style="border-top:1.5px dashed ${COL.g};height:0;vertical-align:3px"></i>Meta global (${GLOBAL.m})</span></div>
 ${G}
-<h2 style="margin-top:12px">Por zona</h2>
+<h2 style="margin-top:12px">Resumen por zona <span class="mut" style="font-weight:400;font-size:7.5pt">total = líneas ÷ horas de toda la zona</span></h2>
 <table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Total (líneas ÷ h)</th><th>Meta</th></tr>${filas}</table>
 <div class="notas"><div><div class="t"><i style="background:${COL.g}"></i>Lo bueno</div>${lst(bueno, 'Ninguna zona sobre la meta con 3 h o más.')}</div><div><div class="t"><i style="background:${COL.y}"></i>Por mejorar</div>${lst(mejorar, 'Todas las zonas en meta.')}</div></div>
-<div class="nota">Total = líneas ÷ horas de toda la zona · sin órdenes de 1 SKU, de menos de 10 s por SKU ni de más de 4 h · todos los tipos de pedido</div>
+<div class="nota">Sin órdenes de 1 SKU, de menos de 10 s por SKU ni de más de 4 h · todos los tipos de pedido</div>
 </div>
 <script>document.getElementById("pdf").onclick=function(){window.print()};document.getElementById("cerrar").onclick=function(){try{parent.__cerrarReporteProd()}catch(e){window.close()}};<\/script>
 </body></html>`;
