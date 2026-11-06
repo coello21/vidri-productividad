@@ -20,6 +20,8 @@ export function pantalla(html: string): HTMLElement {
 export function quitarPantalla() { document.getElementById('acceso')?.remove(); }
 
 export function cargando(txt: string) {
+  // con esqueleto en pantalla no se tapa la página: el avance va en el encabezado
+  if (document.body.classList.contains('esq')) { document.getElementById('acceso')?.remove(); const e = document.getElementById('sub'); if (e) e.textContent = txt; return; }
   const o = document.getElementById('acceso');
   const l = o?.querySelector('.carga');
   if (l) { l.textContent = txt; return; }

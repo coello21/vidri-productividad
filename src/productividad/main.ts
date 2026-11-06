@@ -33,8 +33,36 @@ let ultimas: string[] = []; // personas de la tabla, en orden (para los colores 
 const opciones = (): Opciones => ({ sec: S.sec, flt: S.flt, d1: ($('d1') as HTMLSelectElement).value, d2: ($('d2') as HTMLSelectElement).value, zsel: S.zsel, zAll: S.zAll });
 const colores = () => { const LP = new Set(ultimas), m = new Map<string, string>(); [...S.sel].filter((k) => LP.has(k)).forEach((k, i) => m.set(k, PALETA[i % 8])); return m; };
 
-function kpi(lbl: string, val: string, foot: string, cls = '', st = '') {
-  return '<div class="kpi' + (cls ? ' ' + cls : '') + '"><div class="lbl">' + lbl + '</div><div class="val tabular' + (st ? ' pv-' + st : '') + '">' + val + '</div><div class="foot">' + foot + '</div></div>';
+function kpi(lbl: string, val: string, foot: string, cls = '', st = '', medidor = '') {
+  return '<div class="kpi' + (cls ? ' ' + cls : '') + '"><div class="lbl">' + lbl + '</div><div class="val tabular' + (st ? ' pv-' + st : '') + '">' + val + '</div>' + medidor + '<div class="foot">' + foot + '</div></div>';
+}
+/** Barra del valor contra la meta (marca = meta). */
+function medidor(v: number | null, meta: number | null, st: string) {
+  if (v == null || meta == null) return '';
+  const tope = Math.max(meta * 1.3, v * 1.05), w = Math.min(100, v / tope * 100), mk = meta / tope * 100;
+  return '<div class="pv-meter" title="Meta ' + f(meta, 0) + '"><i class="pv-' + (st || 'n') + '" style="width:' + w.toFixed(1) + '%"></i><b style="left:' + mk.toFixed(1) + '%"></b></div>';
+}
+const lista = (items: string[]) => items.map((x) => '<li>' + x + '</li>').join('');
+const NOTA_REGLAS = (ex1: number, bT: number, bL: number) => `<b>Reglas fijas:</b> quedan fuera ${f(ex1, 0)} órdenes de 1 SKU, ${f(bT, 0)} con menos de ${MIN_SEG} s por SKU y ${f(bL, 0)} de más de ${MAX_HORAS} h (columna Excl.).`;
+const NOTA_COLORES = '<b>Colores:</b> verde = en meta o sobre ella · amarillo = hasta 15 por debajo (5 en ventas y Patio) · rojo = más abajo · cifras en gris = menos de 3 órdenes.';
+
+/** Panel "Personas contra su meta": reparto verde/amarillo/rojo y los 5 más altos y más bajos. */
+function distribucion(filas: FilaPersona[], SC: Map<string, string>, zv: boolean) {
+  const con = filas.filter((p) => p.rate != null), n: Record<string, number> = { g: 0, y: 0, r: 0 };
+  con.forEach((p) => { if (p.st in n) n[p.st]++; });
+  const tot = n.g + n.y + n.r;
+  $('cdsub').textContent = tot ? `${tot} ${zv ? 'personas por zona' : 'personas'} con productividad en el período` : '';
+  if (!tot) { $('dist').innerHTML = '<p class="pv-vacio">Sin datos para esta selección.</p>'; return; }
+  const seg = (k: string, t: string) => n[k] ? `<i class="pv-${k}" style="flex:${n[k]}" title="${t}: ${n[k]}"></i>` : '';
+  const val = con.filter((p) => p.ord >= 3).sort((a, b) => (b.rate! - a.rate!));
+  const mx = Math.max(1, ...val.map((p) => Math.max(p.rate!, p.meta ?? GLOBAL.m)));
+  const fila = (p: FilaPersona) => { const m = p.meta ?? GLOBAL.m, c = SC.get(p.pk);
+    return `<div class="pv-rk${c ? ' sel' : ''}" data-pk="${esc(p.pk)}"><span class="nm" title="${esc(p.name)}${zv ? ' · ' + esc(p.zona) : ''}">${c ? `<em style="background:${c}"></em>` : ''}${esc(p.name)}${zv ? ' <small>' + esc(p.zona) + '</small>' : ''}</span><span class="tr"><i class="pv-${p.st}" style="width:${(p.rate! / mx * 100).toFixed(1)}%"></i><b style="left:${(m / mx * 100).toFixed(1)}%"></b></span><span class="v pv-${p.st}">${f(p.rate)}</span></div>`; };
+  const alto = val.slice(0, 5), bajo = val.length > 5 ? val.slice(-Math.min(5, val.length - 5)).reverse() : [];
+  $('dist').innerHTML = `<div class="pv-stack">${seg('g', 'En meta')}${seg('y', 'En alerta')}${seg('r', 'Por debajo')}</div>` +
+    `<div class="pv-stleg"><span><i class="pv-g"></i>En meta <b>${n.g}</b> · ${f(n.g / tot * 100, 0)}%</span><span><i class="pv-y"></i>Alerta <b>${n.y}</b></span><span><i class="pv-r"></i>Abajo <b>${n.r}</b></span></div>` +
+    `<div class="pv-rkh">Más altos</div>${alto.map(fila).join('')}` + (bajo.length ? `<div class="pv-rkh">Más bajos</div>${bajo.map(fila).join('')}` : '') +
+    '<p class="pv-rkn">SKUs por hora · marca = meta · solo con 3 órdenes o más · clic para ver en la tendencia</p>';
 }
 type Col = [string, string, string, string?];
 function tabla(cols: Col[], filas: string, vacio: string) {
@@ -83,7 +111,7 @@ function render() {
   $('ex').innerHTML = '';
   const vacio = !P.db.size;
   document.body.classList.toggle('nodata', vacio);
-  $('pv').hidden = vacio;
+  $('pv').hidden = vacio; $('calc').hidden = vacio;
   if (vacio) { $('sub').textContent = 'Sin datos cargados'; chipsDias(); return; }
   const days = P.dias();
   const emp = ![...P.db.values()].some((x) => (!o.d1 || x[5] >= o.d1) && (!o.d2 || x[5] <= o.d2));
@@ -91,9 +119,8 @@ function render() {
   ($('cd') as HTMLButtonElement).disabled = !o.d1 && !o.d2;
   $('ch').hidden = S.sec !== 'retail';
   $('zb').hidden = !zv;
-  $('cc').hidden = out || zon || emp;
-  $('split').classList.toggle('solo', out || zon || emp);
-  $('cz').hidden = !(zon && !emp); $('tz').hidden = !(zon && !emp);
+  $('gper').hidden = out || zon || emp;
+  $('cz').hidden = !(zon && !emp); $('tzw').hidden = !(zon && !emp);
   $('ch').innerHTML = FILTROS.map((x) => `<button class="${S.flt === x[0] ? 'on' : ''}" data-f="${x[0]}">${x[1]}</button>`).join('');
   $('sub').textContent = P.db.size.toLocaleString('es') + ' órdenes cargadas' + (days.length ? ' · preparadas del ' + fd(days[0], true) + ' al ' + fd(days[days.length - 1], true) : '');
   if (zon) renderZonas(o, emp);
@@ -113,13 +140,12 @@ function renderPersonas(o: Opciones) {
   let bal = '';
   if (V.JR) {
     const B = V.bal;
-    bal = kpi('Balanceo de carga ' + V.grp, B ? f(B.val) + '%' : '–', 'meta ≤ 10%' + (B ? ` · uso de capacidad promedio ${f(B.cap, 0)}% · ${B.pers} personas por día · ${B.dias === 1 ? '1 día' : 'promedio de ' + B.dias + ' días'}` : ' · requiere órdenes con hora de escaneo'), 'pv-bal', B ? estadoBalanceo(B.val) : '');
+    bal = kpi('Balanceo de carga', B ? f(B.val) + '%' : '–', B ? `meta ≤ 10% · capacidad ${f(B.cap, 0)}% · ${B.pers} pers./día` : 'sin hora de escaneo', 'pv-bal', B ? estadoBalanceo(B.val) : '');
   }
-  const stT = estado(V.rT, mK);
-  $('kp').innerHTML = kpi('SKUs por hora', f(V.rT), `${f(V.T.k, 0)} SKUs ÷ ${f(V.T.h)} h (todo junto)${mK ? ' · Meta ' + f(mK.m, 0) + ' · ' + ({ g: 'en meta', y: 'en alerta', r: 'por debajo de la alerta' }[stT as 'g'] || '') : ''}`, '', stT) +
-    kpi('Promedio por persona', f(V.avg), `Promedio simple de la productividad de cada persona (${V.nPer} personas)${mK ? ' · Meta ' + f(mK.m, 0) : ''}`, '', estado(V.avg, mK)) +
-    (mK ? kpi('Meta', f(mK.m, 0), `${mn_(mK)} · el total está ${gap(V.rT, mK)}`) : '') + bal +
-    kpi('SKUs preparados', f(V.T.k, 0), 'en las órdenes consideradas') + kpi('Horas de preparación', f(V.T.h), 'bloques de tiempo, sin contar dos veces') + kpi('Órdenes consideradas', f(V.T.o, 0), 'dentro de las reglas fijas');
+  const stT = estado(V.rT, mK), stA = estado(V.avg, mK);
+  $('kp').innerHTML = kpi('SKUs por hora', f(V.rT), mK ? `${mn_(mK)} ${f(mK.m, 0)} · ${gap(V.rT, mK)}` : 'todo junto', '', stT, medidor(V.rT, mK ? mK.m : null, stT)) +
+    kpi('Promedio por persona', f(V.avg), `${V.nPer} personas`, '', stA, medidor(V.avg, mK ? mK.m : null, stA)) + bal +
+    kpi('SKUs preparados', f(V.T.k, 0), 'en las órdenes válidas') + kpi('Horas de preparación', f(V.T.h), 'sin contar dos veces') + kpi('Órdenes', f(V.T.o, 0), 'dentro de las reglas');
   ultimas = V.personas.map((p) => p.pk);
   const SC = colores();
   const jcell = (p: FilaPersona) => {
@@ -133,6 +159,9 @@ function renderPersonas(o: Opciones) {
       const col = SC.get(p.pk);
       return `<tr data-pk="${esc(p.pk)}" class="${col ? 'sel' : ''}"><td class="ck"><span class="sw${col ? ' on' : ''}" style="${col ? 'background:' + col + ';border-color:' + col : ''}" role="checkbox" aria-checked="${!!col}" aria-label="Comparar en el gráfico"></span></td><td class="l nm" title="Código ${p.cod ?? '–'}">${esc(p.name)}${p.baja ? ' <span class="tag">(baja)</span>' : ''}</td><td class="l dim">${esc(p.type)}</td>${V.zv ? `<td class="l">${esc(p.zona)}</td>` : ''}<td>${p.ord}</td><td>${f(p.skus, 0)}</td><td>${f(p.hrs, 2)}</td><td>${pill(p.rate, p.st, p.ord < 3, p.ord < 3 ? 'Pocas órdenes: puede no ser representativo' : '')}</td>${hM ? `<td class="dim">${p.meta != null ? f(p.meta, 0) : '–'}</td>` : ''}${V.JR ? jcell(p) + ccell(p) : ''}<td class="dim">${p.bad}</td></tr>`;
     }).join(''), 'No hay órdenes para esta selección.');
+  $('tT').textContent = 'Detalle por preparador' + (V.zv ? ' y zona' : '');
+  $('tS').textContent = 'Clic en una fila para compararla en la tendencia. Clic en un encabezado para ordenar.';
+  distribucion(L, SC, V.zv);
   // tendencia
   const T = P.tendencia(o, S.tmode, mK, [...SC.keys()]);
   $('ccsub').textContent = T.sub;
@@ -143,20 +172,33 @@ function renderPersonas(o: Opciones) {
     ...(mK ? [{ nombre: mn_(mK) + ' (' + f(mK.m, 0) + ')', datos: T.etiquetas.map(() => mK.m), color: '#3E8E4F', punteada: '7 4', puntos: false }, { nombre: 'Alerta desde ' + f(mK.m - mK.t, 0), datos: T.etiquetas.map(() => mK.m - mK.t), color: '#D49A1E', punteada: '2 4', puntos: false }] : []),
     ...T.personas.map((x) => ({ nombre: x.nombre, datos: x.datos, color: SC.get(x.k)! })),
   ], 'SKUs por hora');
-  $('nt').textContent = `Productividad = SKUs preparados ÷ horas de preparación. Las horas van del primer al último SKU preparado de cada orden y se cuentan por bloques de tiempo: si una persona tiene varias órdenes abiertas al mismo tiempo, ese tiempo se cuenta una sola vez. Reglas fijas: quedaron fuera ${V.ex1} órdenes de 1 SKU (sin tiempo medible), ${V.bT} con menos de ${MIN_SEG} s por SKU (escaneo en bloque) y ${V.bL} que superan ${MAX_HORAS} h; estas dos últimas aparecen en la columna Excluidas.` +
-    (V.JR ? ` SKUs/h jornada = todos los SKUs del día de la persona (cualquier tipo de pedido) ÷ horas entre su primer y último escaneo del día, descontando el tiempo entre 12:00 y 13:00; en amarillo si algún día pasa de 10 h (pasa el cursor para ver el detalle). % capacidad = horas que tomarían sus SKUs a la meta de cada zona o tipo de pedido ÷ horas de jornada. Balanceo de carga = diferencia promedio entre el % de capacidad de cada persona y el promedio del equipo, por día (personas del listado de ${V.grp} con al menos 1 h de jornada); verde ≤ 10%, amarillo hasta 15%, rojo más.` : '') +
-    ' B2B = tipo de pedido con “Venta corporativa”, sin importar el tipo de la persona en el listado; Retail nunca incluye esas órdenes. En Retail, cada orden cae en un solo filtro: Existencia, Rotación, En línea (incluye Vidri Express), Ventas (incluye VTA); lo demás va en Otros. En Existencia cada persona se divide por zona; si una orden trae varias zonas se agrupa (por ejemplo “Zona 1 + Zona 2”) porque su tiempo no se puede repartir. Las cifras en gris tienen menos de 3 órdenes. Colores de meta: verde = en meta o sobre ella; amarillo = hasta 15 códigos por hora por debajo en zonas (5 en ventas y Patio); rojo = más abajo. Donde no hay meta específica (Retail «Todos», Rotación, Otros y zonas sin meta) se usa la meta global de 50 SKUs por hora.';
+  $('nt').innerHTML = lista([
+    '<b>SKUs por hora:</b> SKUs preparados ÷ horas de preparación. Las horas van del primer al último SKU de cada orden; si una persona tiene varias órdenes abiertas a la vez, ese tiempo cuenta una sola vez.',
+    '<b>Promedio por persona:</b> promedio simple de la productividad de cada persona.',
+    NOTA_REGLAS(V.ex1, V.bT, V.bL),
+    ...(V.JR ? [
+      '<b>SKUs/h jornada:</b> todos los SKUs del día de la persona ÷ horas entre su primer y último escaneo, sin 12:00–13:00. En amarillo si algún día pasa de 10 h.',
+      '<b>% capacidad:</b> horas que tomarían sus SKUs a la meta de cada zona ÷ horas de jornada.',
+      `<b>Balanceo de carga:</b> diferencia promedio entre el % de capacidad de cada persona y el del equipo, por día (personas de ${V.grp} con 1 h de jornada o más). Verde ≤ 10%, amarillo hasta 15%, rojo más.`] : []),
+    '<b>B2B:</b> órdenes con tipo de pedido «Venta corporativa». Retail nunca las incluye.',
+    '<b>Filtros de Retail:</b> Existencia, Rotación, En línea (incluye Vidri Express), Ventas (incluye VTA) y Otros. En Existencia cada persona se divide por zona; las órdenes de varias zonas van juntas («Zona 1 + Zona 2»).',
+    '<b>Meta:</b> la de la zona o tipo de pedido; donde no hay, la global de 50 SKUs por hora.',
+    NOTA_COLORES,
+  ]);
 }
 
 function renderZonas(o: Opciones, emp: boolean) {
   const V = P.vistaZonas(o);
   $('zb').hidden = emp;
   $('zb').innerHTML = ([[false, 'Solo Existencia'], [true, 'Todas las órdenes']] as [boolean, string][]).map((x) => `<button class="${S.zAll === x[0] ? 'on' : ''}" data-za="${x[0] ? 1 : 0}">${x[1]}</button>`).join('');
-  $('czT').textContent = 'Líneas preparadas por hora por zona · ' + (S.zAll ? 'todas las órdenes' : 'solo Existencia');
-  $('kp').innerHTML = kpi('Líneas por hora', f(V.rZ), `${S.zAll ? 'Todas las órdenes' : 'Solo Existencia'}, sin varias zonas = ${f(V.tk, 0)} líneas ÷ ${f(V.th)} h · Meta global ${f(GLOBAL.m, 0)}`, '', estado(V.rZ, GLOBAL)) +
-    kpi('Promedio por persona', f(V.aZ), `Promedio simple de la productividad de cada persona (${V.nP} personas) · Meta global ${f(GLOBAL.m, 0)}`, '', estado(V.aZ, GLOBAL)) +
-    kpi('Meta global', f(GLOBAL.m, 0), 'el total está ' + gap(V.rZ, GLOBAL)) + kpi('Zonas con datos', String(V.zs1.length), 'sin contar “varias zonas”') +
-    kpi('Órdenes consideradas', f(V.ordenes, 0), V.multi ? `${V.multi} de varias zonas van aparte, solo en la tabla` : 'todas de una sola zona');
+  $('czT').textContent = 'Líneas por hora por zona · ' + (S.zAll ? 'todas las órdenes' : 'solo Existencia');
+  $('tT').textContent = 'Preparador por zona';
+  $('tS').textContent = 'Líneas por hora de cada persona en cada zona. Clic en una fila para verla en el gráfico.';
+  const sZ = estado(V.rZ, GLOBAL), sA = estado(V.aZ, GLOBAL), enMeta = V.S.filter((x) => x.sa === 'g').length;
+  $('kp').innerHTML = kpi('Líneas por hora', f(V.rZ), `Meta global ${f(GLOBAL.m, 0)} · ${gap(V.rZ, GLOBAL)}`, '', sZ, medidor(V.rZ, GLOBAL.m, sZ)) +
+    kpi('Promedio por persona', f(V.aZ), `${V.nP} personas`, '', sA, medidor(V.aZ, GLOBAL.m, sA)) +
+    kpi('Zonas en meta', enMeta + ' de ' + V.S.length, 'promedio de las personas') + kpi('Líneas preparadas', f(V.tk, 0), f(V.th) + ' h de preparación') +
+    kpi('Órdenes', f(V.ordenes, 0), V.multi ? `${V.multi} de varias zonas aparte` : 'todas de una sola zona');
   const top = Math.max(...V.S.map((x) => x.avg || 0), 1);
   $('th2').innerHTML = ['Zona|l', 'Personas|', 'Órdenes|', 'Líneas|', 'Horas|', 'Promedio de las personas|', 'Total (líneas ÷ horas)|', 'Meta|'].map((x) => `<th class="${x.split('|')[1]}">${x.split('|')[0]}</th>`).join('');
   $('tb2').innerHTML = V.S.map((x) => `<tr><td class="l"><b>${esc(x.z)}</b></td><td>${x.n}</td><td>${x.o}</td><td>${f(x.k, 0)}</td><td>${f(x.h, 2)}</td><td><div class="pr"><i class="pv-${x.sa}" style="width:${(x.avg || 0) / top * 120}px"></i>${pill(x.avg, x.sa)}</div></td><td>${pill(x.tot, x.sg)}</td><td class="dim">${f(x.mt.m, 0)}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">No hay órdenes para esta selección.</td></tr>';
@@ -170,18 +212,28 @@ function renderZonas(o: Opciones, emp: boolean) {
   const sel = [...S.sel].filter((k) => L.some((p) => p.pk === k));
   barrasZona($('cv2'), V.S.map((x) => ({ etiqueta: x.z, meta: x.mt.m, valores: [{ v: x.avg == null ? null : +x.avg.toFixed(1), color: { g: '#3E8E4F', y: '#D49A1E', r: '#C7453A', '': '#8d8788' }[x.sa], nombre: 'Promedio de las personas' }, ...sel.map((k, i) => { const p = L.find((q) => q.pk === k)!, c = p.z[x.z]; return { v: c && c.h ? +(c.k / c.h).toFixed(1) : null, color: PALETA[i % 8], nombre: p.name }; })] })), GLOBAL.m, sel.map((k, i) => ({ nombre: L.find((q) => q.pk === k)!.name, color: PALETA[i % 8] })));
   ($('clr2') as HTMLButtonElement).hidden = !sel.length;
-  $('nt').textContent = `Línea = cada SKU de la orden (columna Total item del reporte); líneas por hora = líneas preparadas ÷ horas de preparación. ${S.zAll ? 'Incluye todas las órdenes: Existencia, Rotación, Ventas, En línea y B2B.' : 'Solo órdenes de Existencia; usa «Todas las órdenes» para ver todos los tipos de pedido.'} Las ${V.multi} órdenes que traen varias zonas no se pueden repartir entre ellas: se muestran aparte, solo en la columna «Varias zonas» de la tabla por preparador (meta global), y no entran en las tarjetas, el gráfico, la tabla por zona ni la columna Total. “Promedio de las personas” es el promedio simple de la productividad de cada persona en esa zona; “Total” es líneas ÷ horas de toda la zona. Las horas se cuentan por bloques de tiempo: si una persona tiene varias órdenes abiertas al mismo tiempo, ese tiempo se cuenta una sola vez. Cifras atenuadas: menos de 3 órdenes (pasa el cursor para ver el detalle). Colores: verde = en meta o sobre ella; amarillo = hasta 15 por debajo (5 en Patio); rojo = más abajo. Se aplican las mismas exclusiones: órdenes de 1 SKU, menos de ${MIN_SEG} s por SKU y más de ${MAX_HORAS} h.`;
+  $('nt').innerHTML = lista([
+    '<b>Línea:</b> cada SKU de la orden (columna Total item). <b>Líneas por hora</b> = líneas preparadas ÷ horas de preparación.',
+    S.zAll ? '<b>Órdenes:</b> todas (Existencia, Rotación, Ventas, En línea y B2B).' : '<b>Órdenes:</b> solo Existencia; «Todas las órdenes» incluye los demás tipos.',
+    `<b>Varias zonas:</b> las ${f(V.multi, 0)} órdenes con varias zonas no se pueden repartir; solo salen en la columna «Varias zonas» de la tabla por preparador.`,
+    '<b>Promedio de las personas:</b> promedio simple de cada persona en la zona. <b>Total:</b> líneas ÷ horas de toda la zona.',
+    '<b>Horas:</b> por bloques de tiempo; órdenes abiertas a la vez cuentan una sola vez.',
+    `<b>Exclusiones:</b> órdenes de 1 SKU, de menos de ${MIN_SEG} s por SKU y de más de ${MAX_HORAS} h.`,
+    NOTA_COLORES,
+  ]);
 }
 
 function renderFuera(o: Opciones) {
   const L = P.vistaFuera(o);
   const K = ({ name: 'name', ord: 'ord', v: 'v', skus: 'skus', hrs: 'hrs', rate: 'rate', a: 'a', b: 'b' } as Record<string, string>)[S.sk] || 'ord';
   L.sort((x, y) => { const u = (x as unknown as Record<string, unknown>)[K] as number | string | null, v = (y as unknown as Record<string, unknown>)[K] as number | string | null; if (u == null) return 1; if (v == null) return -1; const d = typeof u === 'string' ? u.localeCompare(v as string) : (u as number) - (v as number); return S.asc ? d : -d; });
-  $('kp').innerHTML = kpi('Fuera del listado', String(L.length), 'nombres del reporte que no están en el listado') + kpi('Órdenes', f(L.reduce((s, p) => s + p.ord, 0), 0), 'de esas personas');
+  $('kp').innerHTML = kpi('Fuera del listado', String(L.length), 'nombres que no están en el listado') + kpi('Órdenes', f(L.reduce((s, p) => s + p.ord, 0), 0), 'de esas personas');
+  $('tT').textContent = 'Personas fuera del listado';
+  $('tS').textContent = '';
   const puede = !COPIA && !!base;
   tabla([['name', 'Nombre en el reporte', 'l'], ['ord', 'Órdenes', ''], ['v', 'Órdenes válidas', ''], ['skus', 'SKUs', ''], ['hrs', 'Horas', ''], ['rate', 'SKUs por hora', ''], ['meta', 'Meta', ''], ['a', 'Primer pedido', ''], ['b', 'Último pedido', ''], ...(puede ? [['add', 'Agregar al listado', ''] as Col] : [])],
     L.map((p, i) => `<tr><td class="l">${esc(p.name)}</td><td>${p.ord}</td><td>${p.v}</td><td>${f(p.skus, 0)}</td><td>${f(p.hrs, 2)}</td><td>${pill(p.rate, estado(p.rate, GLOBAL))}</td><td class="dim">${f(GLOBAL.m, 0)}</td><td class="dim">${p.a}</td><td class="dim">${p.b}</td>${puede ? `<td class="l ad"><select><option>Retail</option><option>B2B</option><option>Apoyo</option></select><button class="btn" data-add="${i}">Agregar</button></td>` : ''}</tr>`).join(''), 'Todos los nombres del reporte están en el listado.');
-  $('nt').textContent = 'Estas personas aparecen como preparador en el reporte y no están en el listado, por eso no entran en Retail ni en B2B.' + (puede ? ' Elige su tipo y pulsa “Agregar”: sus órdenes se cuentan en las productividades, también las de fechas anteriores, y el cambio se guarda en la base para todos.' : ' Para agregarlas, hazlo desde la página.');
+  $('nt').innerHTML = lista(['Aparecen como preparador en el reporte pero no están en el listado, por eso no entran en Retail ni en B2B.', puede ? 'Elige su tipo y pulsa «Agregar»: sus órdenes cuentan desde ese momento, también las de fechas anteriores, y el cambio se guarda en la base para todos.' : 'Para agregarlas, hazlo desde la página.']);
   $('tb').querySelectorAll<HTMLButtonElement>('button[data-add]').forEach((b) => b.addEventListener('click', async () => {
     const p = L[+b.dataset.add!], t = (b.parentElement!.querySelector('select') as HTMLSelectElement).value, nueva: Persona = [null, p.name, t, 'Activo'];
     b.disabled = true;
@@ -220,6 +272,7 @@ function conectar() {
   });
   $('tmode').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('button'); if (!b) return; S.tmode = b.dataset.m as 'w' | 'd'; $('tmode').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b)); render(); });
   $('tb').addEventListener('click', (e) => { const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-pk]'); if (!tr) return; const k = tr.dataset.pk!; if (S.sel.has(k)) S.sel.delete(k); else S.sel.add(k); render(); });
+  $('dist').addEventListener('click', (e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('[data-pk]'); if (!r) return; const k = r.dataset.pk!; if (S.sel.has(k)) S.sel.delete(k); else S.sel.add(k); render(); });
   $('clr').addEventListener('click', () => { S.sel.clear(); render(); });
   $('clr2').addEventListener('click', () => { S.sel.clear(); render(); });
   let t: number | undefined;
@@ -337,6 +390,7 @@ function montar(ordenes: Orden[], extra: Persona[], usuario: string) {
     mostrarReporte(armarReporte(P, dia, logo));
   });
   document.getElementById('acceso')?.remove();
+  document.body.classList.remove('esq');
   ponerSeccion((location.hash || '').slice(1) as Seccion);
   render();
 }
@@ -361,11 +415,12 @@ async function arrancar() {
     const buf = new Uint8Array(await r.arrayBuffer());
     const txt = buf[0] === 0x1f && buf[1] === 0x8b ? await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text() : new TextDecoder().decode(buf);
     const J = JSON.parse(txt);
+    if (new URLSearchParams(location.search).get('lento')) await new Promise((r) => setTimeout(r, 4000));
     montar(J.ordenes, J.extra || [], 'prueba');
     ($('todoBtn') as HTMLElement).hidden = true;
     return;
   }
-  const [{ crearCliente, iniciarSesion, cargando, pantalla }, { BaseProductividad }] = await Promise.all([import('../app/sesion'), import('../nube/productividad')]);
+  const [{ crearCliente, iniciarSesion, cargando, pantalla, quitarPantalla }, { BaseProductividad }] = await Promise.all([import('../app/sesion'), import('../nube/productividad')]);
   const sb = crearCliente();
   await iniciarSesion(sb, async (s) => {
     base = new BaseProductividad(sb);
@@ -373,8 +428,10 @@ async function arrancar() {
     const d = new Date(); d.setDate(d.getDate() - 90);
     const desde = todo ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     let ordenes: Orden[], extra: Persona[];
-    try { [ordenes, extra] = await Promise.all([base.leerOrdenes(desde, (p) => cargando('Órdenes… ' + p + '%')), base.leerPersonal()]); }
+    quitarPantalla();
+    try { [ordenes, extra] = await Promise.all([base.leerOrdenes(desde, (p) => cargando('Cargando órdenes… ' + p + '%')), base.leerPersonal()]); }
     catch (e) {
+      document.body.classList.remove('esq');
       const m = (e as Error)?.message || '';
       pantalla('<h1>Falta preparar la base</h1><p>' + (/does not exist|relation|schema cache/i.test(m) ? 'Todavía no existen las tablas de Productividad. Corre una vez <b>supabase/03_productividad.sql</b> en el SQL Editor de Supabase y vuelve a abrir la página.' : 'No se pudieron leer los datos: ' + esc(m)) + '</p>');
       return;
