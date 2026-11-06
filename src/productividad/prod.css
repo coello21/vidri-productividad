@@ -23,7 +23,7 @@
 .pv-tw tr.sel td{background:var(--surface-2)}
 .pv-tw td.empty{text-align:center;color:var(--ink-muted);padding:24px}
 .pv-tw .mt{font-size:9.5px;color:var(--ink-muted);text-transform:none}
-.pv-tw td.pv-j{background:rgba(212,154,30,.10)}
+.pv-tw td.pv-j{background:rgba(58,118,176,.06)}
 .pv-tw td.jl{background:rgba(212,154,30,.30)}
 .pv-tw .tag{font-size:11px;color:var(--ink-muted)}
 .pv-tw td.ck,.pv-tw th.ck{width:28px;text-align:center}
