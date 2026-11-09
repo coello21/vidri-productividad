@@ -36,7 +36,9 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
   const sobre = en.filter((s) => s.h >= 3).sort((a, b) => b.tot! / b.mt.m - a.tot! / a.mt.m).slice(0, 3);
   const rZ = Z.rZ ?? 0, meta = GLOBAL.m, gap = meta - rZ;
   const f = new Date(dia + 'T12:00:00'), fecha = DIA[f.getDay()] + ' ' + f.getDate() + ' ' + MES[f.getMonth()] + ' ' + f.getFullYear();
-  const hc = corte ? hora(corte) : '—';
+  // día ya pasado: "cierre del día"; hoy: la hora de la última orden terminada
+  const hoyS = (() => { const h = new Date(); return h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0'); })();
+  const hc = dia < hoyS ? 'cierre del día' : corte ? 'corte ' + hora(corte) : '—';
   const lista = (a: string[]) => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1]);
   const bajoH = bajo.slice().sort((a, b) => b.h - a.h).slice(0, 3);
   const bueno = sobre.length ? [`${lista(sobre.map((s) => s.z))}: las que más superan su meta.`] : [];
@@ -90,7 +92,7 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3A3B3D}.mut{color:#6D6E70}
 </style></head><body>
 <div class="bar-top"><button id="pdf" type="button">Guardar PDF</button><button id="cerrar" type="button">Cerrar</button></div>
 <div class="pg">
-<div class="hd"><img src="${logo}" alt="Vidri"><div class="hr"><b>Productividad por zona · CD Nejapa</b>${fecha.charAt(0) + fecha.slice(1).toLowerCase()} · corte ${hc}</div></div>
+<div class="hd"><img src="${logo}" alt="Vidri"><div class="hr"><b>Productividad por zona · CD Nejapa</b>${fecha.charAt(0) + fecha.slice(1).toLowerCase()} · ${hc}</div></div>
 <div class="k" style="grid-template-columns:repeat(3,1fr)">
 <div class="kp"><div class="l">Líneas por hora</div><div class="v" style="color:${COL[est(rZ, meta, GLOBAL.t)]}">${c1(rZ)}</div><div class="s">meta ${meta}</div></div>
 <div class="kp"><div class="l">Zonas en meta</div><div class="v">${en.length} de ${S.length}</div><div class="s">${Z.nP} personas</div></div>
