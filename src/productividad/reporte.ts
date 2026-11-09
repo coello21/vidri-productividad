@@ -103,7 +103,6 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3A3B3D}.mut{color:#6D6E70}
 ${G}
 <h2 style="margin-top:12px">Resumen por zona <span class="mut" style="font-weight:400;font-size:7.5pt">total = líneas ÷ horas de toda la zona</span></h2>
 <table><tr><th class="l">Zona</th><th>Órdenes</th><th>Líneas</th><th>Total (líneas ÷ h)</th><th>Meta</th></tr>${filas}</table>
-<div class="notas"><div><div class="t"><i style="background:${COL.g}"></i>Lo bueno</div>${lst(bueno, 'Ninguna zona sobre la meta con 3 h o más.')}</div><div><div class="t"><i style="background:${COL.y}"></i>Por mejorar</div>${lst(mejorar, 'Todas las zonas en meta.')}</div></div>
 <div class="nota">Sin órdenes de 1 SKU, de menos de 10 s por SKU ni de más de 4 h · todos los tipos de pedido</div>
 </div>
 <script>document.getElementById("pdf").onclick=function(){window.print()};document.getElementById("cerrar").onclick=function(){try{parent.__cerrarReporteProd()}catch(e){window.close()}};<\/script>
