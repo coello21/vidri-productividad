@@ -5,7 +5,7 @@
 import '../app/radar.css';
 import '../app/estilos.css';
 import './prod.css';
-import { Productividad, FILTROS, estado, estadoBalanceo, fmt as f, type Opciones, type Seccion, type Filtro, type FilaPersona } from '../core/productividad/calculo';
+import { Productividad, FILTROS, estado, fmt as f, type Opciones, type Seccion, type Filtro, type FilaPersona } from '../core/productividad/calculo';
 import { GLOBAL, MAX_HORAS, MIN_SEG, metaZona, clave, type Meta, type Persona } from '../core/productividad/listado';
 import { leerAuditoria, type Orden } from '../core/productividad/parseo';
 import { lineas, barrasZona, PALETA } from './graficos';
@@ -136,14 +136,9 @@ function renderPersonas(o: Opciones) {
   const K = S.sk === 'zona' ? 'zn' : S.sk;
   const val = (p: FilaPersona) => (p as unknown as Record<string, unknown>)[K] as number | string | null;
   L.sort((a, b) => { const x = val(a), y = val(b); if (x == null) return 1; if (y == null) return -1; let d = typeof x === 'string' ? x.localeCompare(y as string, 'es', { numeric: true }) : (x as number) - (y as number); if (!S.asc) d = -d; return d || ((b.rate || 0) - (a.rate || 0)); });
-  let bal = '';
-  if (V.JR) {
-    const B = V.bal;
-    bal = kpi('Balanceo de carga', B ? f(B.val) + '%' : '–', B ? `meta ≤ 10% · capacidad ${f(B.cap, 0)}% · ${B.pers} pers./día` : 'sin hora de escaneo', 'pv-bal', B ? estadoBalanceo(B.val) : '');
-  }
   const stT = estado(V.rT, mK), stA = estado(V.avg, mK);
   $('kp').innerHTML = kpi('SKUs por hora', f(V.rT), mK ? `${mn_(mK)} ${f(mK.m, 0)} · ${gap(V.rT, mK)}` : 'todo junto', '', stT, medidor(V.rT, mK ? mK.m : null, stT)) +
-    kpi('Promedio por persona', f(V.avg), `${V.nPer} personas`, '', stA, medidor(V.avg, mK ? mK.m : null, stA)) + bal +
+    kpi('Promedio por persona', f(V.avg), `${V.nPer} personas`, '', stA, medidor(V.avg, mK ? mK.m : null, stA)) +
     kpi('SKUs preparados', f(V.T.k, 0), 'en las órdenes válidas') + kpi('Horas de preparación', f(V.T.h), 'sin contar dos veces') + kpi('Órdenes', f(V.T.o, 0), 'dentro de las reglas');
   ultimas = V.personas.map((p) => p.pk);
   const SC = colores();
@@ -177,8 +172,7 @@ function renderPersonas(o: Opciones) {
     NOTA_REGLAS(V.ex1, V.bT, V.bL),
     ...(V.JR ? [
       '<b>SKUs/h jornada:</b> todos los SKUs del día de la persona ÷ horas entre su primer y último escaneo, sin 12:00–13:00. En amarillo si algún día pasa de 10 h.',
-      '<b>% capacidad:</b> horas que tomarían sus SKUs a la meta de cada zona ÷ horas de jornada.',
-      `<b>Balanceo de carga:</b> diferencia promedio entre el % de capacidad de cada persona y el del equipo, por día (personas de ${V.grp} con 1 h de jornada o más). Verde ≤ 10%, amarillo hasta 15%, rojo más.`] : []),
+      '<b>% capacidad:</b> horas que tomarían sus SKUs a la meta de cada zona ÷ horas de jornada.'] : []),
     '<b>B2B:</b> órdenes con tipo de pedido «Venta corporativa». Retail nunca las incluye.',
     '<b>Filtros de Retail:</b> Existencia, Rotación, En línea (incluye Vidri Express), Ventas (incluye VTA) y Otros. En Existencia cada persona se divide por zona; las órdenes de varias zonas van juntas («Zona 1 + Zona 2»).',
     '<b>Meta:</b> la de la zona o tipo de pedido; donde no hay, la global de 50 SKUs por hora.',
