@@ -100,3 +100,4 @@ body.esq #calc,body.esq #respaldo .nb-dot{visibility:hidden}
 .pv-grid .chart .seg button{border-radius:0;margin-left:-1px}
 .pv-grid .chart .seg button:first-child{border-radius:4px 0 0 4px;margin-left:0}.pv-grid .chart .seg button:last-child{border-radius:0 4px 4px 0}
 html[data-theme="dark"] .pv-leg i[style*="#26241F"]{background:#E8E4DA!important}
+.vx .meta #act{display:block}.vx .meta #act[hidden]{display:none}

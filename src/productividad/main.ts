@@ -299,6 +299,7 @@ async function cargarExcel(files: File[]) {
     const { aFila } = await import('../nube/productividad');
     try {
       await base.guardarOrdenes(filas.map(aFila));
+      ponerActualizado(new Date().toISOString());
       await base.registrarCarga({ ordenes: filas.length, dias: [...new Set(filas.map((x) => x.orden[5]))].sort() });
       aviso('ok', 'Guardado en la base. ' + txt, 30000);
     } catch (e) { aviso('err', 'Se cargó en pantalla, pero no se pudo guardar en la base: ' + ((e as Error)?.message || 'error') + '. Vuelve a cargar el Excel en un momento.', 40000); }
@@ -345,13 +346,23 @@ async function plantilla(): Promise<string> {
   return tpl.replace(/<link[^>]*href="\.\/nube\/tema\.css"[^>]*>/, () => '<style id="tema-css">' + css + '</style>')
     .replace(/<script[^>]*src="\.\/nube\/tema\.js"[^>]*><\/script>/, () => '<script>' + js.replace(/<\/script/gi, '<\\/script') + '</' + 'script>');
 }
+/** "Actualizado 6 nov 2026, 4:51 p. m." en el encabezado, como en el Radar. */
+let actualizado: string | null = null;
+function ponerActualizado(iso: string | null) {
+  actualizado = iso;
+  const el = $('act');
+  if (!iso) { el.hidden = true; return; }
+  const d = new Date(iso);
+  el.textContent = 'Actualizado ' + d.toLocaleDateString('es-SV', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + d.toLocaleTimeString('es-SV', { hour: 'numeric', minute: '2-digit' });
+  el.hidden = false;
+}
 async function descargarHtml(btn: HTMLButtonElement) {
   const t0 = btn.textContent; btn.disabled = true; btn.textContent = 'Preparando…';
   try {
     const ds = P.dias(); if (!ds.length) throw new Error('todavía no hay datos');
     const desde = addD(ds[ds.length - 1], -44);
     const O = [...P.db.values()].filter((o) => o[5] >= desde).sort((a, b) => a[0] - b[0]);
-    const b64 = await gzB64(JSON.stringify({ guardado: new Date().toISOString(), extra: P.extra, ordenes: O }));
+    const b64 = await gzB64(JSON.stringify({ guardado: new Date().toISOString(), act: actualizado, extra: P.extra, ordenes: O }));
     const tpl = await plantilla(), TAG = '<script type="text/plain" id="emb">', FIN = '</' + 'script>', emb = TAG + b64 + FIN;
     let html: string | null = null; const i = tpl.lastIndexOf(TAG);
     if (i >= 0) { const j = tpl.indexOf(FIN, i + TAG.length); if (j > 0 && /^[A-Za-z0-9+/=\s]*$/.test(tpl.slice(i + TAG.length, j))) html = tpl.slice(0, i) + emb + tpl.slice(j + FIN.length); }
@@ -398,6 +409,7 @@ async function arrancar() {
     const el = document.getElementById('emb'), J = el && el.textContent && el.textContent.trim() ? await leerB64(el.textContent) : { ordenes: [], extra: [] };
     ($('importBtn') as HTMLElement).hidden = true; ($('todoBtn') as HTMLElement).hidden = true;
     montar(J.ordenes || [], J.extra || [], '');
+    ponerActualizado(J.act || J.guardado || null);
     const ds = P.dias(); if (ds.length) $('modo').textContent = 'Últimos 45 días (' + fd(ds[0]) + ' – ' + fd(ds[ds.length - 1]) + ')';
     return;
   }
@@ -418,9 +430,9 @@ async function arrancar() {
     const todo = !!new URLSearchParams(location.search).get('todo');
     const d = new Date(); d.setDate(d.getDate() - 90);
     const desde = todo ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    let ordenes: Orden[], extra: Persona[];
+    let ordenes: Orden[], extra: Persona[], act: string | null = null;
     quitarPantalla();
-    try { [ordenes, extra] = await Promise.all([base.leerOrdenes(desde, (p) => cargando('Cargando órdenes… ' + p + '%')), base.leerPersonal()]); }
+    try { [ordenes, extra, act] = await Promise.all([base.leerOrdenes(desde, (p) => cargando('Cargando órdenes… ' + p + '%')), base.leerPersonal(), base.ultimaActualizacion().catch(() => null)]); }
     catch (e) {
       document.body.classList.remove('esq');
       const m = (e as Error)?.message || '';
@@ -428,6 +440,7 @@ async function arrancar() {
       return;
     }
     montar(ordenes, extra, s.user?.email || '');
+    ponerActualizado(act);
     $('salir').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
     const tb = $('todoBtn') as HTMLButtonElement;
     if (todo) tb.hidden = true;

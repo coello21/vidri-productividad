@@ -45,6 +45,11 @@ export class BaseProductividad {
     });
     return (await enParalelo(tareas, 6)).flat();
   }
+  /** Cuándo se guardó la última orden (la última carga del Excel). */
+  async ultimaActualizacion(): Promise<string | null> {
+    const r = revisar(await this.sb.from('prod_ordenes').select('actualizado').not('actualizado', 'is', null).order('actualizado', { ascending: false }).limit(1), 'Productividad');
+    return ((r.data || []) as { actualizado: string }[])[0]?.actualizado || null;
+  }
   async leerPersonal(): Promise<Persona[]> {
     const r = revisar(await this.sb.from('prod_personal').select('codigo,nombre,tipo,estado').order('agregado'), 'Listado');
     return ((r.data || []) as { codigo: number | null; nombre: string; tipo: string; estado: string }[]).map((x) => [x.codigo, x.nombre, x.tipo, x.estado]);
