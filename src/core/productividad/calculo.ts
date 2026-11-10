@@ -68,6 +68,14 @@ export class Productividad {
     for (let o of ordenes) { o = diaDePreparacion(o); if (this.db.has(o[0])) actualizadas++; else nuevas++; meses.add(o[5].slice(0, 7)); this.db.set(o[0], o); }
     return { nuevas, actualizadas, meses };
   }
+  /** Zonas del CD: donde ha trabajado alguien del listado. Las órdenes de gente fuera del listado solo cuentan en los
+   *  totales si todas sus zonas son del CD (así no entran otras áreas, como Bazinni o Cantilever). */
+  zonasCD(): Set<string> {
+    const Z = new Set<string>();
+    for (const o of this.db.values()) if (this.idx.has(clave(o[1]))) zona(o[6]).l.forEach((z) => Z.add(z));
+    return Z;
+  }
+  delCD(zr: unknown, Z: Set<string>): boolean { const l = zona(zr).l; return l.length > 0 && l.every((z) => Z.has(z)); }
   dias(): string[] { return [...new Set([...this.db.values()].map((o) => o[5]))].sort(); }
 
   /** Meta de la sección elegida. */
@@ -137,14 +145,14 @@ export class Productividad {
     const A = new Map<string, FilaPersona>(), Z = new Map<string, number>(), PP: Record<string, Acum> = {}, ZS: Record<string, Record<string, Acum>> = {}, ZT: Record<string, Acum> = {};
     let ex1 = 0, bT = 0, bL = 0;
     /** Fuera del listado: cuentan en los totales, no en el análisis por persona. */
-    const FX: Record<string, Acum> = {}; let oX = 0;
+    const FX: Record<string, Acum> = {}; let oX = 0; const ZCD = this.zonasCD();
     for (const ord of this.db.values()) {
       const [, n, items, h, tipo, day, zr] = ord, k = clave(n), ct = categoria(tipo);
       if (o.sec === 'b2b' ? ct !== 'b2b' : (ct === 'b2b' || (o.flt !== 'all' && ct !== o.flt))) continue;
       if ((o.d1 && day < o.d1) || (o.d2 && day > o.d2)) continue;
       const s = this.idx.get(k);
       if (!s) {
-        if (zv && o.zsel && zona(zr).k !== o.zsel) continue;
+        if (!this.delCD(zr, ZCD) || (zv && o.zsel && zona(zr).k !== o.zsel)) continue;
         if (valida(items, h)) { oX++; sumar(FX[k] || (FX[k] = acum()), ord); }
         continue;
       }
@@ -197,12 +205,13 @@ export class Productividad {
     const zv = o.sec === 'retail' && o.flt === 'exi', ds = this.dias(), end = o.d2 || ds[ds.length - 1], keys: string[] = [];
     if (modo === 'w') { for (let i = 11; i >= 0; i--) { const d = new Date(end + 'T12:00:00'); d.setDate(d.getDate() - 7 * i); const w = semana(ymd(d)); if (!keys.includes(w)) keys.push(w); } }
     else { for (let i = 13; i >= 0; i--) { const d = new Date(end + 'T12:00:00'); d.setDate(d.getDate() - i); keys.push(ymd(d)); } }
-    const KS = new Set(keys), TP: Record<string, Record<string, Acum>> = {};
+    const KS = new Set(keys), TP: Record<string, Record<string, Acum>> = {}, ZCD = this.zonasCD();
     for (const ord of this.db.values()) {
       const [, n, items, h, tipo, day, zr] = ord, ct = categoria(tipo);
       if (o.sec === 'b2b' ? ct !== 'b2b' : (ct === 'b2b' || (o.flt !== 'all' && ct !== o.flt))) continue;
       const b = modo === 'w' ? semana(day) : day; if (!KS.has(b)) continue;
-      const k = clave(n); if (zv && o.zsel && zona(zr).k !== o.zsel) continue;  // el total lleva a todos; las líneas por persona, solo el listado
+      const k = clave(n); if (zv && o.zsel && zona(zr).k !== o.zsel) continue;  // el total lleva a todos (de zonas del CD); las líneas por persona, solo el listado
+      if (!this.idx.has(k) && !this.delCD(zr, ZCD)) continue;
       if (!valida(items, h)) continue;
       sumar((TP[k] || (TP[k] = {}))[b] || (TP[k][b] = acum()), ord);
     }
@@ -223,11 +232,12 @@ export class Productividad {
     const P = new Map<string, { pk: string; cod: number | null; name: string; type: string; baja: boolean; z: Record<string, Acum & { o: number; h?: number }>; t: Acum; k?: number; h?: number }>(), ZN = new Map<string, number>();
     /** Fuera del listado: cuentan en los totales de cada zona, no en el promedio de las personas. */
     const PU = new Map<string, { z: Record<string, Acum & { o: number; h?: number }>; t: Acum; k?: number; h?: number }>();
-    let multi = 0;
+    let multi = 0; const ZCD = this.zonasCD();
     for (const ord of this.db.values()) {
       const [, n, items, h, tipo, day, zr] = ord;
       if ((!o.zAll && categoria(tipo) !== 'exi') || (o.d1 && day < o.d1) || (o.d2 && day > o.d2)) continue;
       const k = clave(n), s = this.idx.get(k);
+      if (!s && !this.delCD(zr, ZCD)) continue;
       const z0 = zona(zr), z = z0.l.length > 1 ? { k: 'Varias zonas', n: 999, l: z0.l } : z0;
       if (!valida(items, h)) continue;
       if (z0.l.length > 1) multi++;
