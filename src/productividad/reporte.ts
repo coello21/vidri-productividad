@@ -29,7 +29,7 @@ export function armarReporte(P: Productividad, dia: string, logo: string): { htm
   let corte = 0;
   for (const o of P.db.values()) if (o[5] === dia && o[8] != null && o[8] > corte) corte = o[8];
   let vo = 0, vk = 0, vh = 0, vp = 0;
-  for (const p of [...Z.personas, ...Z.fuera]) { const c = p.z['Varias zonas']; if (c) { vo += c.o; vk += c.k; vh += horas(c); vp++; } }  // el total lleva a todos
+  for (const p of Z.personas) { const c = p.z['Varias zonas']; if (c) { vo += c.o; vk += c.k; vh += horas(c); vp++; } }
   const vr = vh ? vk / vh : null;
   const S = Z.S.filter((s) => s.tot != null);
   const en = S.filter((s) => s.tot! >= s.mt.m), bajo = S.filter((s) => s.tot! < s.mt.m);
