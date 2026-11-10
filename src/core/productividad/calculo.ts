@@ -231,8 +231,7 @@ export class Productividad {
       const z0 = zona(zr), z = z0.l.length > 1 ? { k: 'Varias zonas', n: 999, l: z0.l } : z0;
       if (!valida(items, h)) continue;
       if (z0.l.length > 1) multi++;
-      // las zonas salen de las personas del listado; las de otras áreas (solo gente fuera del listado) no abren zona nueva
-      if (s) ZN.set(z.k, z.n);
+      ZN.set(z.k, z.n);
       if (!s) {
         let u = PU.get(k); if (!u) PU.set(k, (u = { z: {}, t: acum() }));
         const c = u.z[z.k] || (u.z[z.k] = Object.assign(acum(), { o: 0 })); sumar(c, ord); c.o++;
