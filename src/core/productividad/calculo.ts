@@ -136,11 +136,18 @@ export class Productividad {
     const zv = o.sec === 'retail' && o.flt === 'exi';
     const A = new Map<string, FilaPersona>(), Z = new Map<string, number>(), PP: Record<string, Acum> = {}, ZS: Record<string, Record<string, Acum>> = {}, ZT: Record<string, Acum> = {};
     let ex1 = 0, bT = 0, bL = 0;
+    /** Fuera del listado: cuentan en los totales, no en el análisis por persona. */
+    const FX: Record<string, Acum> = {}; let oX = 0;
     for (const ord of this.db.values()) {
       const [, n, items, h, tipo, day, zr] = ord, k = clave(n), ct = categoria(tipo);
       if (o.sec === 'b2b' ? ct !== 'b2b' : (ct === 'b2b' || (o.flt !== 'all' && ct !== o.flt))) continue;
       if ((o.d1 && day < o.d1) || (o.d2 && day > o.d2)) continue;
-      const s = this.idx.get(k); if (!s) continue;
+      const s = this.idx.get(k);
+      if (!s) {
+        if (zv && o.zsel && zona(zr).k !== o.zsel) continue;
+        if (valida(items, h)) { oX++; sumar(FX[k] || (FX[k] = acum()), ord); }
+        continue;
+      }
       const z = zona(zr);
       if (zv) {
         Z.set(z.k, z.n);
@@ -169,6 +176,9 @@ export class Productividad {
       if (JR) { const j = JR.get(p.pk); p.j = j; p.jr = j ? j.rate : null; p.cap = j ? j.cap : null; }
     });
     const T = L.reduce((s, p) => ({ o: s.o + p.ord, k: s.k + p.skus, h: s.h + p.hrs }), { o: 0, k: 0, h: 0 });
+    const fuera = { o: oX, k: 0, h: 0 };
+    for (const x of Object.values(FX)) { fuera.k += x.k; fuera.h += horas(x); }
+    T.o += fuera.o; T.k += fuera.k; T.h += fuera.h;
     L = L.filter((p) => p.ord + p.bad > 0);
     const mK = zv ? (o.zsel ? metaZona(o.zsel) : GLOBAL) : mS;
     const rT = T.h ? T.k / T.h : null;
@@ -179,7 +189,7 @@ export class Productividad {
     /** Personas de la tabla (una por persona) con su productividad total, para elegirlas en el gráfico. */
     const personas = new Map<string, { pk: string; name: string; rate: number | null }>();
     for (const p of L) if (!personas.has(p.pk)) { const q = PP[p.pk], hh = q ? horas(q) : 0; personas.set(p.pk, { pk: p.pk, name: p.name, rate: hh > 0 ? q.k / hh : null }); }
-    return { zv, filas: L, T, rT, avg, nPer: pr.length, mK, mS, JR: !!JR, bal, grp, zonas, zselValida, ex1, bT, bL, personas: [...personas.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')) };
+    return { zv, filas: L, T, fuera, rT, avg, nPer: pr.length, mK, mS, JR: !!JR, bal, grp, zonas, zselValida, ex1, bT, bL, personas: [...personas.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')) };
   }
 
   /** Tendencia: últimas 12 semanas o 14 días hasta la fecha final, del total y de las personas elegidas. */
@@ -192,7 +202,7 @@ export class Productividad {
       const [, n, items, h, tipo, day, zr] = ord, ct = categoria(tipo);
       if (o.sec === 'b2b' ? ct !== 'b2b' : (ct === 'b2b' || (o.flt !== 'all' && ct !== o.flt))) continue;
       const b = modo === 'w' ? semana(day) : day; if (!KS.has(b)) continue;
-      const k = clave(n); if (!this.idx.has(k)) continue; if (zv && o.zsel && zona(zr).k !== o.zsel) continue;
+      const k = clave(n); if (zv && o.zsel && zona(zr).k !== o.zsel) continue;  // el total lleva a todos; las líneas por persona, solo el listado
       if (!valida(items, h)) continue;
       sumar((TP[k] || (TP[k] = {}))[b] || (TP[k][b] = acum()), ord);
     }
@@ -211,33 +221,43 @@ export class Productividad {
   /* ---------------- Productividad por zona ---------------- */
   vistaZonas(o: Opciones) {
     const P = new Map<string, { pk: string; cod: number | null; name: string; type: string; baja: boolean; z: Record<string, Acum & { o: number; h?: number }>; t: Acum; k?: number; h?: number }>(), ZN = new Map<string, number>();
+    /** Fuera del listado: cuentan en los totales de cada zona, no en el promedio de las personas. */
+    const PU = new Map<string, { z: Record<string, Acum & { o: number; h?: number }>; t: Acum; k?: number; h?: number }>();
     let multi = 0;
     for (const ord of this.db.values()) {
       const [, n, items, h, tipo, day, zr] = ord;
       if ((!o.zAll && categoria(tipo) !== 'exi') || (o.d1 && day < o.d1) || (o.d2 && day > o.d2)) continue;
-      const k = clave(n), s = this.idx.get(k); if (!s) continue;
+      const k = clave(n), s = this.idx.get(k);
       const z0 = zona(zr), z = z0.l.length > 1 ? { k: 'Varias zonas', n: 999, l: z0.l } : z0;
       if (!valida(items, h)) continue;
       if (z0.l.length > 1) multi++;
       ZN.set(z.k, z.n);
+      if (!s) {
+        let u = PU.get(k); if (!u) PU.set(k, (u = { z: {}, t: acum() }));
+        const c = u.z[z.k] || (u.z[z.k] = Object.assign(acum(), { o: 0 })); sumar(c, ord); c.o++;
+        if (z.n !== 999) sumar(u.t, ord);
+        continue;
+      }
       let p = P.get(k); if (!p) P.set(k, (p = { pk: k, cod: s[0], name: s[1], type: s[2], baja: s[3] !== 'Activo', z: {}, t: acum() }));
       const c = p.z[z.k] || (p.z[z.k] = Object.assign(acum(), { o: 0 })); sumar(c, ord); c.o++;
       if (z.n !== 999) sumar(p.t, ord);
     }
-    for (const p of P.values()) { p.k = p.t.k; p.h = horas(p.t); for (const c of Object.values(p.z)) c.h = horas(c); }
+    for (const p of [...P.values(), ...PU.values()]) { p.k = p.t.k; p.h = horas(p.t); for (const c of Object.values(p.z)) c.h = horas(c); }
     const zs = [...ZN].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])).map((x) => x[0]);
     const zs1 = zs.filter((z) => z !== 'Varias zonas');
     const media = (r: number[]) => (r.length ? r.reduce((a, b) => a + b, 0) / r.length : null);
     const S = zs1.map((z) => {
       let n = 0, k = 0, h = 0; const r: number[] = [];
       for (const p of P.values()) { const c = p.z[z]; if (c) { n += c.o; k += c.k; h += c.h!; if (c.h! > 0) r.push(c.k / c.h!); } }
+      for (const u of PU.values()) { const c = u.z[z]; if (c) { n += c.o; k += c.k; h += c.h!; } }
       const mt = metaZona(z), avg = media(r), tot = h ? k / h : null;
       return { z, n: r.length, o: n, k, h, tot, avg, mt, sa: estado(avg, mt), sg: estado(tot, mt) };
     });
     const L = [...P.values()];
-    const tk = L.reduce((a, p) => a + p.k!, 0), th = L.reduce((a, p) => a + p.h!, 0);
+    const U = [...PU.values()];
+    const tk = [...L, ...U].reduce((a, p) => a + p.k!, 0), th = [...L, ...U].reduce((a, p) => a + p.h!, 0);
     const rZ = th ? tk / th : null, aZ = media(L.filter((p) => p.h! > 0).map((p) => p.k! / p.h!)), nP = L.filter((p) => p.h! > 0).length;
-    return { personas: L, zs, zs1, S, tk, th, rZ, aZ, nP, multi, ordenes: S.reduce((a, x) => a + x.o, 0) };
+    return { personas: L, fuera: U, zs, zs1, S, tk, th, rZ, aZ, nP, multi, ordenes: S.reduce((a, x) => a + x.o, 0) };
   }
 
   /* ---------------- Fuera del listado ---------------- */
