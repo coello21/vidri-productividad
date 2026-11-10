@@ -96,7 +96,7 @@ tr.vz td{border-top:1px solid #C9CED5;color:#3A3B3D}.mut{color:#6D6E70}
 <div class="k" style="grid-template-columns:repeat(3,1fr)">
 <div class="kp"><div class="l">Líneas por hora</div><div class="v" style="color:${COL[est(rZ, meta, GLOBAL.t)]}">${c1(rZ)}</div><div class="s">meta ${meta}</div></div>
 <div class="kp"><div class="l">Zonas en meta</div><div class="v">${en.length} de ${S.length}</div><div class="s">${Z.nP} personas</div></div>
-<div class="kp"><div class="l">Líneas preparadas</div><div class="v">${c0(Z.tk)}</div><div class="s">${c1(Z.th)} h</div></div>
+<div class="kp"><div class="l">Líneas preparadas</div><div class="v">${c0(Z.tk + Z.kFuera)}</div><div class="s">${c1(Z.th)} h</div></div>
 </div>
 <h2>Líneas por hora por zona <span class="mut" style="font-weight:400;font-size:7.5pt">promedio de las personas</span></h2>
 <div class="lgz"><span><i style="background:${COL.g}"></i>En meta</span><span><i style="background:${COL.y}"></i>Cerca</span><span><i style="background:${COL.r}"></i>Abajo</span><span><i style="background:#1A1A1A;height:3px;vertical-align:2px"></i>Meta de la zona</span><span><i style="border-top:1.5px dashed ${COL.g};height:0;vertical-align:3px"></i>Meta global (${GLOBAL.m})</span></div>

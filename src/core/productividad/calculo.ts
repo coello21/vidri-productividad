@@ -68,6 +68,26 @@ export class Productividad {
     for (let o of ordenes) { o = diaDePreparacion(o); if (this.db.has(o[0])) actualizadas++; else nuevas++; meses.add(o[5].slice(0, 7)); this.db.set(o[0], o); }
     return { nuevas, actualizadas, meses };
   }
+  /** Zonas de Nejapa: donde ha trabajado alguien del listado (así no entran otras áreas, como Bazinni o Cantilever). */
+  zonasCD(): Set<string> {
+    const Z = new Set<string>();
+    for (const o of this.db.values()) if (this.idx.has(clave(o[1]))) zona(o[6]).l.forEach((z) => Z.add(z));
+    return Z;
+  }
+  /**
+   * Solo para la tarjeta de lo preparado: SKUs de órdenes válidas de personas que no están en el listado,
+   * en zonas de Nejapa. No entra en ningún otro cálculo (horas, ritmo, zonas ni personas).
+   */
+  skusFuera(dentro: (tipo: unknown, zr: unknown) => boolean, d1?: string, d2?: string): number {
+    const Z = this.zonasCD();
+    let k = 0;
+    for (const [, n, items, h, tipo, day, zr] of this.db.values()) {
+      if (this.idx.has(clave(n)) || (d1 && day < d1) || (d2 && day > d2) || !dentro(tipo, zr) || !valida(items, h)) continue;
+      const l = zona(zr).l;
+      if (l.length && l.every((z) => Z.has(z))) k += items;
+    }
+    return k;
+  }
   dias(): string[] { return [...new Set([...this.db.values()].map((o) => o[5]))].sort(); }
 
   /** Meta de la sección elegida. */
@@ -179,7 +199,8 @@ export class Productividad {
     /** Personas de la tabla (una por persona) con su productividad total, para elegirlas en el gráfico. */
     const personas = new Map<string, { pk: string; name: string; rate: number | null }>();
     for (const p of L) if (!personas.has(p.pk)) { const q = PP[p.pk], hh = q ? horas(q) : 0; personas.set(p.pk, { pk: p.pk, name: p.name, rate: hh > 0 ? q.k / hh : null }); }
-    return { zv, filas: L, T, rT, avg, nPer: pr.length, mK, mS, JR: !!JR, bal, grp, zonas, zselValida, ex1, bT, bL, personas: [...personas.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')) };
+    const kFuera = this.skusFuera((tipo, zr) => { const ct = categoria(tipo); return (o.sec === 'b2b' ? ct === 'b2b' : ct !== 'b2b' && (o.flt === 'all' || ct === o.flt)) && !(zv && o.zsel && zona(zr).k !== o.zsel); }, o.d1, o.d2);
+    return { zv, filas: L, T, kFuera, rT, avg, nPer: pr.length, mK, mS, JR: !!JR, bal, grp, zonas, zselValida, ex1, bT, bL, personas: [...personas.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')) };
   }
 
   /** Tendencia: últimas 12 semanas o 14 días hasta la fecha final, del total y de las personas elegidas. */
@@ -237,7 +258,8 @@ export class Productividad {
     const L = [...P.values()];
     const tk = L.reduce((a, p) => a + p.k!, 0), th = L.reduce((a, p) => a + p.h!, 0);
     const rZ = th ? tk / th : null, aZ = media(L.filter((p) => p.h! > 0).map((p) => p.k! / p.h!)), nP = L.filter((p) => p.h! > 0).length;
-    return { personas: L, zs, zs1, S, tk, th, rZ, aZ, nP, multi, ordenes: S.reduce((a, x) => a + x.o, 0) };
+    const kFuera = this.skusFuera((tipo) => o.zAll || categoria(tipo) === 'exi', o.d1, o.d2);
+    return { personas: L, zs, zs1, S, tk, th, kFuera, rZ, aZ, nP, multi, ordenes: S.reduce((a, x) => a + x.o, 0) };
   }
 
   /* ---------------- Fuera del listado ---------------- */
