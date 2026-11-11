@@ -75,18 +75,21 @@ export class Productividad {
     return Z;
   }
   /**
-   * Solo para la tarjeta de lo preparado: SKUs de órdenes válidas de personas que no están en el listado,
-   * en zonas de Nejapa. No entra en ningún otro cálculo (horas, ritmo, zonas ni personas).
+   * Solo para las tarjetas de lo preparado (SKUs y órdenes): lo preparado que no entra en la medición de tiempos.
+   * - Personas del listado: sus órdenes no válidas (1 SKU, menos de 10 s por SKU, más de 4 h).
+   * - Personas fuera del listado: todas sus órdenes en zonas de Nejapa.
+   * No entra en ningún otro cálculo (horas, ritmo, zonas ni personas).
    */
-  skusFuera(dentro: (tipo: unknown, zr: unknown) => boolean, d1?: string, d2?: string): number {
+  preparadoExtra(dentro: (tipo: unknown, zr: unknown) => boolean, d1?: string, d2?: string): { k: number; o: number } {
     const Z = this.zonasCD();
-    let k = 0;
-    for (const [, n, items, h, tipo, day, zr] of this.db.values()) {
-      if (this.idx.has(clave(n)) || (d1 && day < d1) || (d2 && day > d2) || !dentro(tipo, zr) || !valida(items, h)) continue;
-      const l = zona(zr).l;
-      if (l.length && l.every((z) => Z.has(z))) k += items;
+    let k = 0, n = 0;
+    for (const [, nom, items, h, tipo, day, zr] of this.db.values()) {
+      if ((d1 && day < d1) || (d2 && day > d2) || !dentro(tipo, zr)) continue;
+      if (this.idx.has(clave(nom))) { if (valida(items, h)) continue; }
+      else { const l = zona(zr).l; if (!l.length || !l.every((z) => Z.has(z))) continue; }
+      k += items; n++;
     }
-    return k;
+    return { k, o: n };
   }
   dias(): string[] { return [...new Set([...this.db.values()].map((o) => o[5]))].sort(); }
 
@@ -199,8 +202,8 @@ export class Productividad {
     /** Personas de la tabla (una por persona) con su productividad total, para elegirlas en el gráfico. */
     const personas = new Map<string, { pk: string; name: string; rate: number | null }>();
     for (const p of L) if (!personas.has(p.pk)) { const q = PP[p.pk], hh = q ? horas(q) : 0; personas.set(p.pk, { pk: p.pk, name: p.name, rate: hh > 0 ? q.k / hh : null }); }
-    const kFuera = this.skusFuera((tipo, zr) => { const ct = categoria(tipo); return (o.sec === 'b2b' ? ct === 'b2b' : ct !== 'b2b' && (o.flt === 'all' || ct === o.flt)) && !(zv && o.zsel && zona(zr).k !== o.zsel); }, o.d1, o.d2);
-    return { zv, filas: L, T, kFuera, rT, avg, nPer: pr.length, mK, mS, JR: !!JR, bal, grp, zonas, zselValida, ex1, bT, bL, personas: [...personas.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')) };
+    const extra = this.preparadoExtra((tipo, zr) => { const ct = categoria(tipo); return (o.sec === 'b2b' ? ct === 'b2b' : ct !== 'b2b' && (o.flt === 'all' || ct === o.flt)) && !(zv && o.zsel && zona(zr).k !== o.zsel); }, o.d1, o.d2);
+    return { zv, filas: L, T, extra, rT, avg, nPer: pr.length, mK, mS, JR: !!JR, bal, grp, zonas, zselValida, ex1, bT, bL, personas: [...personas.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')) };
   }
 
   /** Tendencia: últimas 12 semanas o 14 días hasta la fecha final, del total y de las personas elegidas. */
@@ -258,8 +261,8 @@ export class Productividad {
     const L = [...P.values()];
     const tk = L.reduce((a, p) => a + p.k!, 0), th = L.reduce((a, p) => a + p.h!, 0);
     const rZ = th ? tk / th : null, aZ = media(L.filter((p) => p.h! > 0).map((p) => p.k! / p.h!)), nP = L.filter((p) => p.h! > 0).length;
-    const kFuera = this.skusFuera((tipo) => o.zAll || categoria(tipo) === 'exi', o.d1, o.d2);
-    return { personas: L, zs, zs1, S, tk, th, kFuera, rZ, aZ, nP, multi, ordenes: S.reduce((a, x) => a + x.o, 0) };
+    const extra = this.preparadoExtra((tipo) => o.zAll || categoria(tipo) === 'exi', o.d1, o.d2);
+    return { personas: L, zs, zs1, S, tk, th, extra, rZ, aZ, nP, multi, ordenes: S.reduce((a, x) => a + x.o, 0) };
   }
 
   /* ---------------- Fuera del listado ---------------- */

@@ -139,7 +139,7 @@ function renderPersonas(o: Opciones) {
   const stT = estado(V.rT, mK), stA = estado(V.avg, mK);
   $('kp').innerHTML = kpi('SKUs por hora', f(V.rT), mK ? `${mn_(mK)} ${f(mK.m, 0)} · ${gap(V.rT, mK)}` : 'todo junto', '', stT, medidor(V.rT, mK ? mK.m : null, stT)) +
     kpi('Promedio por persona', f(V.avg), `${V.nPer} personas`, '', stA, medidor(V.avg, mK ? mK.m : null, stA)) +
-    kpi('SKUs preparados', f(V.T.k + V.kFuera, 0), 'en las órdenes válidas') + kpi('Horas de preparación', f(V.T.h), 'sin contar dos veces') + kpi('Órdenes', f(V.T.o, 0), 'dentro de las reglas');
+    kpi('SKUs preparados', f(V.T.k + V.extra.k, 0), 'todas las órdenes preparadas') + kpi('Horas de preparación', f(V.T.h), 'sin contar dos veces') + kpi('Órdenes', f(V.T.o + V.extra.o, 0), 'todas las preparadas');
   ultimas = V.personas.map((p) => p.pk);
   const SC = colores();
   const jcell = (p: FilaPersona) => {
@@ -190,8 +190,8 @@ function renderZonas(o: Opciones, emp: boolean) {
   const sZ = estado(V.rZ, GLOBAL), sA = estado(V.aZ, GLOBAL), enMeta = V.S.filter((x) => x.sa === 'g').length;
   $('kp').innerHTML = kpi('Líneas por hora', f(V.rZ), `Meta global ${f(GLOBAL.m, 0)} · ${gap(V.rZ, GLOBAL)}`, '', sZ, medidor(V.rZ, GLOBAL.m, sZ)) +
     kpi('Promedio por persona', f(V.aZ), `${V.nP} personas`, '', sA, medidor(V.aZ, GLOBAL.m, sA)) +
-    kpi('Zonas en meta', enMeta + ' de ' + V.S.length, 'promedio de las personas') + kpi('Líneas preparadas', f(V.tk + V.kFuera, 0), f(V.th) + ' h de preparación') +
-    kpi('Órdenes', f(V.ordenes, 0), V.multi ? `${V.multi} de varias zonas aparte` : 'todas de una sola zona');
+    kpi('Zonas en meta', enMeta + ' de ' + V.S.length, 'promedio de las personas') + kpi('Líneas preparadas', f(V.tk + V.extra.k, 0), f(V.th) + ' h de preparación') +
+    kpi('Órdenes', f(V.ordenes + V.extra.o, 0), V.multi ? `${V.multi} de varias zonas aparte` : 'todas de una sola zona');
   const top = Math.max(...V.S.map((x) => x.avg || 0), 1);
   $('th2').innerHTML = ['Zona|l', 'Órdenes|', 'Líneas|', 'Promedio de las personas|', 'Total (líneas ÷ horas)|', 'Meta|'].map((x) => `<th class="${x.split('|')[1]}">${x.split('|')[0]}</th>`).join('');
   $('tb2').innerHTML = V.S.map((x) => `<tr><td class="l"><b>${esc(x.z)}</b></td><td>${x.o}</td><td>${f(x.k, 0)}</td><td><div class="pr"><i class="pv-${x.sa}" style="width:${(x.avg || 0) / top * 120}px"></i>${pill(x.avg, x.sa)}</div></td><td>${pill(x.tot, x.sg)}</td><td class="dim">${f(x.mt.m, 0)}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">No hay órdenes para esta selección.</td></tr>';
