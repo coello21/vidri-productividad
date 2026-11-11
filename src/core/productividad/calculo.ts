@@ -50,6 +50,9 @@ export const diaDePreparacion = (o: Orden): Orden => {
   return dia === o[5] ? o : [o[0], o[1], o[2], o[3], o[4], dia, o[6], o[7], o[8]];
 };
 
+/** Áreas que no son de Nejapa: lo que preparan quienes no están en el listado ahí no suma en la tarjeta de lo preparado. */
+export const FUERA_DE_NEJAPA = new Set(['Bazinni']);
+
 export class Productividad {
   db = new Map<number, Orden>();
   extra: Persona[] = [];
@@ -79,16 +82,15 @@ export class Productividad {
   /**
    * Solo para las tarjetas de lo preparado (SKUs y órdenes): lo preparado que no entra en la medición de tiempos.
    * - Personas del listado: sus órdenes no válidas (1 SKU, menos de 10 s por SKU, más de 4 h).
-   * - Personas fuera del listado: todas sus órdenes en zonas de Nejapa.
+   * - Personas fuera del listado: todas sus órdenes en zonas de Nejapa (todas menos las de FUERA_DE_NEJAPA).
    * No entra en ningún otro cálculo (horas, ritmo, zonas ni personas).
    */
   preparadoExtra(dentro: (tipo: unknown, zr: unknown) => boolean, d1?: string, d2?: string): { k: number; o: number } {
-    const Z = this.zonasCD();
     let k = 0, n = 0;
     for (const [, nom, items, h, tipo, day, zr] of this.db.values()) {
       if ((d1 && day < d1) || (d2 && day > d2) || !dentro(tipo, zr)) continue;
       if (this.idx.has(clave(nom))) { if (valida(items, h)) continue; }
-      else { const l = zona(zr).l; if (!l.length || !l.every((z) => Z.has(z))) continue; }
+      else { const l = zona(zr).l; if (!l.length || l.some((z) => FUERA_DE_NEJAPA.has(z))) continue; }
       k += items; n++;
     }
     return { k, o: n };
