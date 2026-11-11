@@ -69,8 +69,10 @@ export class Productividad {
     return { nuevas, actualizadas, meses };
   }
   /** Zonas de Nejapa: donde ha trabajado alguien del listado (así no entran otras áreas, como Bazinni o Cantilever). */
+  /** Zonas que trae una copia HTML desde la página (para que la copia cuente igual que la página). */
+  zonasFijas: Set<string> | null = null;
   zonasCD(): Set<string> {
-    const Z = new Set<string>();
+    const Z = new Set<string>(this.zonasFijas || []);
     for (const o of this.db.values()) if (this.idx.has(clave(o[1]))) zona(o[6]).l.forEach((z) => Z.add(z));
     return Z;
   }

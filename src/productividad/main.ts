@@ -362,7 +362,7 @@ async function descargarHtml(btn: HTMLButtonElement) {
     const ds = P.dias(); if (!ds.length) throw new Error('todavía no hay datos');
     const desde = addD(ds[ds.length - 1], -44);
     const O = [...P.db.values()].filter((o) => o[5] >= desde).sort((a, b) => a[0] - b[0]);
-    const b64 = await gzB64(JSON.stringify({ guardado: new Date().toISOString(), act: actualizado, extra: P.extra, ordenes: O }));
+    const b64 = await gzB64(JSON.stringify({ guardado: new Date().toISOString(), act: actualizado, extra: P.extra, ordenes: O, zonas: [...P.zonasCD()] }));
     const tpl = await plantilla(), TAG = '<script type="text/plain" id="emb">', FIN = '</' + 'script>', emb = TAG + b64 + FIN;
     let html: string | null = null; const i = tpl.lastIndexOf(TAG);
     if (i >= 0) { const j = tpl.indexOf(FIN, i + TAG.length); if (j > 0 && /^[A-Za-z0-9+/=\s]*$/.test(tpl.slice(i + TAG.length, j))) html = tpl.slice(0, i) + emb + tpl.slice(j + FIN.length); }
@@ -375,8 +375,9 @@ async function descargarHtml(btn: HTMLButtonElement) {
 }
 
 /* ---------------- arranque ---------------- */
-function montar(ordenes: Orden[], extra: Persona[], usuario: string) {
+function montar(ordenes: Orden[], extra: Persona[], usuario: string, zonas?: string[]) {
   P = new Productividad(ordenes, extra);
+  if (zonas && zonas.length) P.zonasFijas = new Set(zonas);  // copia HTML: las mismas zonas que usaba la página
   $('usuario').textContent = usuario; $('nbUser').textContent = usuario;
   conectar();
   const archivo = (btn: string, inp: string, fn: (f: File[]) => void) => {
@@ -408,7 +409,7 @@ async function arrancar() {
     propia = '<!doctype html>\n' + document.documentElement.outerHTML;
     const el = document.getElementById('emb'), J = el && el.textContent && el.textContent.trim() ? await leerB64(el.textContent) : { ordenes: [], extra: [] };
     ($('importBtn') as HTMLElement).hidden = true; ($('todoBtn') as HTMLElement).hidden = true;
-    montar(J.ordenes || [], J.extra || [], '');
+    montar(J.ordenes || [], J.extra || [], '', J.zonas);
     ponerActualizado(J.act || J.guardado || null);
     const ds = P.dias(); if (ds.length) $('modo').textContent = 'Últimos 45 días (' + fd(ds[0]) + ' – ' + fd(ds[ds.length - 1]) + ')';
     return;
