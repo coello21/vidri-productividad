@@ -32,18 +32,46 @@ function revisar<T extends { error: { message?: string } | null }>(r: T, que: st
 export class BaseProductividad {
   constructor(private sb: SupabaseClient) {}
 
-  /** Órdenes desde un día (o todas). Se leen en páginas, varias a la vez. */
+  /**
+   * Órdenes desde un día (o todas). Se leen por meses, varios a la vez; dentro de cada mes en páginas de 1,000
+   * que siguen desde la última orden leída (no "saltar N filas", que con todo el historial pasa del tiempo límite).
+   */
   async leerOrdenes(desde: string | null, progreso?: (pct: number) => void): Promise<Orden[]> {
     const filtro = <Q extends { gte: (c: string, v: string) => Q }>(q: Q) => (desde ? q.gte('dia', desde) : q);
     const c = revisar(await filtro(this.sb.from('prod_ordenes').select('id', { count: 'exact', head: true })), 'Productividad');
-    const tam = 1000, paginas = Math.max(1, Math.ceil((c.count || 0) / tam));
-    let hechas = 0;
-    const tareas = Array.from({ length: paginas }, (_, p) => async () => {
-      const r = revisar(await filtro(this.sb.from('prod_ordenes').select(COLS_PANTALLA)).order('id').range(p * tam, p * tam + tam - 1), 'Productividad');
-      hechas++; progreso?.(Math.round(hechas / paginas * 100));
-      return ((r.data || []) as unknown as FilaOrden[]).map(aOrden);
+    const total = c.count || 0;
+    let ini = desde;
+    if (!ini) {
+      const r = revisar(await this.sb.from('prod_ordenes').select('dia').order('dia').limit(1), 'Productividad');
+      ini = ((r.data || []) as { dia: string }[])[0]?.dia || null;
+    }
+    if (!ini) return [];
+    // tramos de un mes: [desde, hasta)
+    const tramos: [string, string][] = [];
+    const hoy = new Date(), fin = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth() + 1, 1));
+    let d = new Date(ini + 'T00:00:00Z');
+    while (d < fin) {
+      const sig = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+      tramos.push([d.toISOString().slice(0, 10), sig.toISOString().slice(0, 10)]);
+      d = sig;
+    }
+    tramos[tramos.length - 1][1] = '9999-12-31';
+    const tam = 1000;
+    let leidas = 0;
+    const tareas = tramos.map(([a, b]) => async () => {
+      const out: Orden[] = [];
+      let ultimo = -1;
+      for (;;) {
+        const r = revisar(await this.sb.from('prod_ordenes').select(COLS_PANTALLA).gte('dia', a).lt('dia', b).gt('id', ultimo).order('id').limit(tam), 'Productividad');
+        const filas = (r.data || []) as unknown as FilaOrden[];
+        filas.forEach((f) => out.push(aOrden(f)));
+        leidas += filas.length; progreso?.(total ? Math.min(100, Math.round(leidas / total * 100)) : 100);
+        if (filas.length < tam) break;
+        ultimo = Number(filas[filas.length - 1].id);
+      }
+      return out;
     });
-    return (await enParalelo(tareas, 6)).flat();
+    return (await enParalelo(tareas, 4)).flat().sort((x, y) => x[0] - y[0]);   // mismo orden que antes (por id)
   }
   /** Cuándo se guardó la última orden (la última carga del Excel). */
   async ultimaActualizacion(): Promise<string | null> {
