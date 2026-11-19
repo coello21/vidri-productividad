@@ -8,7 +8,7 @@ import { norm } from './listado';
 
 /**
  * Orden para los cálculos (mismo formato que la página original):
- * [id, nombre, items, horas, tipo, día de preparación (fecha del 1er código preparado), zona, t1, t2]
+ * [id, nombre, items, horas, tipo, día de preparación (fecha de entrega a revisión = último código preparado), zona, t1, t2]
  * t1/t2 = segundos desde 1970 del 1° y último código preparado (null en historial viejo sin hora).
  */
 export type Orden = [number, string, number, number, string, string, string, number | null, number | null];

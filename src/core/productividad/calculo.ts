@@ -42,11 +42,11 @@ export interface FilaPersona {
   j?: Jornada; jr: number | null; cap: number | null;
 }
 
-/** Día de la orden = día en que se empezó a preparar (1er código preparado), no el de asignación:
- *  una orden asignada el jueves en la tarde y preparada el viernes cuenta el viernes. */
+/** Día de la orden = día en que se entregó a revisión (último código preparado, fin de la preparación); desde el
+ *  19-nov-2026. Ahí termina preparación y empieza despacho (revisión, DTE por pallet y actualizado). */
 export const diaDePreparacion = (o: Orden): Orden => {
-  if (o[7] == null) return o;
-  const d = new Date(o[7] * 1000), dia = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  if (o[8] == null) return o;
+  const d = new Date(o[8] * 1000), dia = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   return dia === o[5] ? o : [o[0], o[1], o[2], o[3], o[4], dia, o[6], o[7], o[8]];
 };
 
@@ -76,21 +76,24 @@ export class Productividad {
   zonasFijas: Set<string> | null = null;
   zonasCD(): Set<string> {
     const Z = new Set<string>(this.zonasFijas || []);
-    for (const o of this.db.values()) if (this.idx.has(clave(o[1]))) zona(o[6]).l.forEach((z) => Z.add(z));
+    for (const o of this.db.values()) if (o[7] != null && this.idx.has(clave(o[1]))) zona(o[6]).l.forEach((z) => Z.add(z));
     return Z;
   }
   /**
    * Solo para las tarjetas de lo preparado (SKUs y órdenes): lo preparado que no entra en la medición de tiempos.
    * - Personas del listado: sus órdenes no válidas (1 SKU, menos de 10 s por SKU, más de 4 h).
    * - Personas fuera del listado: todas sus órdenes en zonas de Nejapa (todas menos las de FUERA_DE_NEJAPA).
+   * - Órdenes del Rpt (sin hora de inicio ni zona): entregadas a revisión que la auditoría todavía no trae; ya vienen
+   *   solo de ubicaciones de Nejapa, cuentan siempre aquí.
    * No entra en ningún otro cálculo (horas, ritmo, zonas ni personas).
    */
   preparadoExtra(dentro: (tipo: unknown, zr: unknown) => boolean, d1?: string, d2?: string): { k: number; o: number } {
     let k = 0, n = 0;
-    for (const [, nom, items, h, tipo, day, zr] of this.db.values()) {
+    for (const [, nom, items, h, tipo, day, zr, t1] of this.db.values()) {
       if ((d1 && day < d1) || (d2 && day > d2) || !dentro(tipo, zr)) continue;
+      const delRpt = !zr && t1 == null;
       if (this.idx.has(clave(nom))) { if (valida(items, h)) continue; }
-      else { const l = zona(zr).l; if (!l.length || l.some((z) => FUERA_DE_NEJAPA.has(z))) continue; }
+      else if (!delRpt) { const l = zona(zr).l; if (!l.length || l.some((z) => FUERA_DE_NEJAPA.has(z))) continue; }
       k += items; n++;
     }
     return { k, o: n };
