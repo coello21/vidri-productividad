@@ -165,7 +165,7 @@ function renderPersonas(o: Opciones) {
     { nombre: 'Total', datos: T.total, color: '#26241F', grosor: 3 },
     ...(mK ? [{ nombre: mn_(mK) + ' (' + f(mK.m, 0) + ')', datos: T.etiquetas.map(() => mK.m), color: '#1E3A6E', punteada: '7 4', puntos: false }, { nombre: 'Alerta desde ' + f(mK.m - mK.t, 0), datos: T.etiquetas.map(() => mK.m - mK.t), color: '#D49A1E', punteada: '2 4', puntos: false }] : []),
     ...T.personas.map((x) => ({ nombre: x.nombre, datos: x.datos, color: SC.get(x.k)! })),
-  ], 'SKUs por hora');
+  ], 'SKUs por hora', T.cambio);
   $('nt').innerHTML = lista([
     '<b>SKUs por hora:</b> SKUs preparados ÷ horas de preparación. Las horas van del primer al último SKU de cada orden; si una persona tiene varias órdenes abiertas a la vez, ese tiempo cuenta una sola vez.',
     '<b>Promedio por persona:</b> promedio simple de la productividad de cada persona.',

@@ -236,7 +236,10 @@ export class Productividad {
     const total = ks.map((b) => R(TT[b]));
     const personas = elegidas.map((k) => ({ k, nombre: (this.idx.get(k) || [null, k])[1] as string, datos: ks.map((b) => { const a = (TP[k] || {})[b]; return a ? R({ k: a.k, h: horas(a) }) : null; }) }));
     const p = end.split('-');
-    return { etiquetas, total, personas, meta: mK, sub: (modo === 'w' ? 'Últimas 12 semanas' : 'Últimos 14 días') + ' hasta el ' + (+p[2]) + ' ' + MES[+p[1] - 1] + ' ' + p[0] + '. Marca personas en la tabla para compararlas.' };
+    // semana del cambio en el proceso de revisión (12 al 18-nov): sus etiquetas salen en rojo
+    const SC = new Set(['2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18'].map((d) => (modo === 'w' ? semana(d) : d)));
+    const cambio = ks.map((b) => SC.has(b));
+    return { etiquetas, cambio, total, personas, meta: mK, sub: (modo === 'w' ? 'Últimas 12 semanas' : 'Últimos 14 días') + ' hasta el ' + (+p[2]) + ' ' + MES[+p[1] - 1] + ' ' + p[0] + '. Marca personas en la tabla para compararlas.' };
   }
 
   /* ---------------- Productividad por zona ---------------- */

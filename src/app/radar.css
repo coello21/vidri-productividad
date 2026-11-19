@@ -694,4 +694,5 @@ table.hm td{white-space:nowrap}
 #tab-top #topMot .rk-tbl th:last-child{display:table-cell}
 
 /* Nota del cambio en el proceso de revisión (desde el 12-nov-2026) */
-.vxh .nota-cambio{margin:8px 0 0;font:11px var(--font-mono,monospace);text-transform:uppercase;letter-spacing:.06em;color:#E0262B}
+/* semana del cambio en el proceso de revisión: fechas en rojo */
+.ax.cb,text.cb{fill:#E0262B!important}
