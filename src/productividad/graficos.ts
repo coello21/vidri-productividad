@@ -21,7 +21,7 @@ export function lineas(el: HTMLElement, etiquetas: string[], series: Linea[], ti
   let g = '<text class="ax" transform="rotate(-90)" x="' + (-(m.t + ih / 2)) + '" y="12" text-anchor="middle">' + esc(tituloY) + '</text>';
   for (let k = 0; k <= 5; k++) { const v = max * k / 5, yy = y(v).toFixed(1); g += '<line class="gl" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + yy + '" y2="' + yy + '"/><text class="ax" x="' + (m.l - 6) + '" y="' + (+yy + 3.5) + '" text-anchor="end">' + Math.round(v) + '</text>'; }
   const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 52))));
-  etiquetas.forEach((e, i) => { if (i % step === 0 || (i === n - 1 && (n - 1) % step >= step / 2)) g += '<text class="ax' + (cambio[i] ? ' cb' : '') + '" x="' + x(i).toFixed(1) + '" y="' + (H - 9) + '" text-anchor="' + (i === n - 1 && n > 1 ? 'end' : i === 0 && n > 1 ? 'start' : 'middle') + '">' + (cambio[i] ? '<title>Semana del cambio en el proceso de revisión</title>' : '') + esc(e) + '</text>'; });
+  etiquetas.forEach((e, i) => { if (i % step === 0 || (i === n - 1 && (n - 1) % step >= step / 2)) g += '<text class="ax' + (cambio[i] ? ' cb' : '') + '" x="' + x(i).toFixed(1) + '" y="' + (H - 9) + '" text-anchor="' + (i === n - 1 && n > 1 ? 'end' : i === 0 && n > 1 ? 'start' : 'middle') + '">' + (cambio[i] ? '<title>Inconveniente por el cambio en la revisión</title>' : '') + esc(e) + '</text>'; });
   for (const s of series) {
     let tramo: string[] = [];
     const corta = () => { if (tramo.length > 1) g += '<polyline fill="none" stroke="' + s.color + '" stroke-width="' + (s.grosor || 2) + '"' + (s.punteada ? ' stroke-dasharray="' + s.punteada + '"' : '') + ' points="' + tramo.join(' ') + '"/>'; tramo = []; };
