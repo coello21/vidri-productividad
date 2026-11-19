@@ -692,3 +692,6 @@ table.hm td{white-space:nowrap}
 #topMot th:nth-child(3),#topMot td:nth-child(3){width:52px}
 #topMot td:nth-child(2){max-width:none}
 #tab-top #topMot .rk-tbl th:last-child{display:table-cell}
+
+/* Nota del cambio en el proceso de revisión (desde el 12-nov-2026) */
+.vxh .nota-cambio{margin:8px 0 0;font:11px var(--font-mono,monospace);text-transform:uppercase;letter-spacing:.06em;color:#E0262B}
